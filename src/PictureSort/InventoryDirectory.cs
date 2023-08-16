@@ -22,23 +22,29 @@ public class InventoryDirectory
         IProgress<string> progress,
         CancellationToken cancellationToken)
     {
+        var result = new List<FileInventoryResult>();
+        
         progress.Report("Read all files in the Directory.");
         var files = Directory.GetFiles(directory, "*.*", SearchOption.AllDirectories);
         progress.Report($"We found {files.Length} files in the directory.");
 
+        if (files.Length == 0)
+        {
+            return result;
+        }
+        
         var chunkSize = files.Length;
         if (maxConcurrency < chunkSize)
             chunkSize = (chunkSize + (maxConcurrency - 1)) / maxConcurrency;
 
         var chunks = files.Chunk(chunkSize);
 
-        _logger.LogDebug($"Found: {files.Length} total files in {directory}. We Split it in {maxConcurrency} parts with a chunk size {chunkSize}.");
+        progress.Report($"Found: {files.Length} total files in {directory}. We Split it in {maxConcurrency} parts with a chunk size {chunkSize}.");
 
-        var chunkTasks = chunks.Select(chunk => CheckFilesAsync(progress, chunk)).ToList();
+        var chunkTasks = chunks.Select(chunk => CheckFilesAsync(progress, chunk, cancellationToken)).ToList();
 
         await Task.WhenAll(chunkTasks);
-
-        var result = new List<FileInventoryResult>();
+        
         foreach (var chunkTask in chunkTasks)
         {
             result.AddRange(chunkTask.Result);
@@ -47,13 +53,15 @@ public class InventoryDirectory
         return result.AsReadOnly();
     }
 
-    private async Task<List<FileInventoryResult>> CheckFilesAsync(IProgress<string> progress, IEnumerable<string> files)
+    private async Task<List<FileInventoryResult>> CheckFilesAsync(IProgress<string> progress, IEnumerable<string> files, CancellationToken cancellationToken)
     {
         var result = new List<FileInventoryResult>();
         using var hashAlgorithm = MD5.Create();
         
         foreach (var file in files)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+            
             var hash = await GetFileHashAsync(file, hashAlgorithm);
             var originalFileName = Path.GetFileName(file);
             var creationTime = File.GetCreationTime(file);
