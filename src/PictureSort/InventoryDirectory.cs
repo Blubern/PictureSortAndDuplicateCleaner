@@ -41,7 +41,7 @@ public class InventoryDirectory
 
         progress.Report($"Found: {files.Length} total files in {directory}. We Split it in {maxConcurrency} parts with a chunk size {chunkSize}.");
 
-        var chunkTasks = chunks.Select(chunk => CheckFilesAsync(progress, chunk, cancellationToken)).ToList();
+        var chunkTasks = chunks.Select((chunk, index) => CheckFilesAsync(progress, chunk, index, cancellationToken)).ToList();
 
         await Task.WhenAll(chunkTasks);
         
@@ -53,11 +53,12 @@ public class InventoryDirectory
         return result.AsReadOnly();
     }
 
-    private async Task<List<FileInventoryResult>> CheckFilesAsync(IProgress<string> progress, IEnumerable<string> files, CancellationToken cancellationToken)
+    private async Task<List<FileInventoryResult>> CheckFilesAsync(IProgress<string> progress, IList<string> files, int taskNumber, CancellationToken cancellationToken)
     {
         var result = new List<FileInventoryResult>();
         using var hashAlgorithm = MD5.Create();
-        
+
+        var i = 1;
         foreach (var file in files)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -113,7 +114,8 @@ public class InventoryDirectory
 
             result.Add(fileInventoryResult);
 
-            progress.Report($"Checked {fileInventoryResult}.");
+            progress.Report($"Task: {taskNumber} - File {i}/{files.Count} - Checked {fileInventoryResult}.");
+            i++;
         }
 
         return result;

@@ -17,7 +17,7 @@ var pictureSorter = serviceProvider.GetRequiredService<PictureSorter>();
 var parameter = new PictureSortParameter(
     @"P:\Sonam",
     @"P:\Sonam2",
-    9);
+    7);
 
 var result = await pictureSorter.StartPictureSortAsync(
     parameter,

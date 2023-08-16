@@ -57,7 +57,8 @@ public class PictureSorter
         await MovePicturesToTheTargetFolderAsync(
             sourceDirectoryInventory,
             pictureSortParameter.TargetDirectory,
-            progress, 
+            progress,
+            (int) pictureSortParameter.MaxConcurrency,
             cancellationToken);
         
         
@@ -87,8 +88,9 @@ public class PictureSorter
 
                 foreach (var fileInventoryResult in sourceDirectoryInventory)
                 {
-                    var targetFullPath = Path.Combine(alreadyExistingFolder, fileInventoryResult.Hash, fileInventoryResult.OriginalFileName);
-                    Directory.CreateDirectory(targetFullPath);
+                    var targetFullDirectoryPath = Path.Combine(alreadyExistingFolder, fileInventoryResult.Hash); 
+                    var targetFullPath = Path.Combine(targetFullDirectoryPath, fileInventoryResult.OriginalFileName);
+                    Directory.CreateDirectory(targetFullDirectoryPath);
                     progress.Report("We move the file to the already existing file directory:");
                     progress.Report($"{fileInventoryResult.FullPath} => {targetFullPath}.");
                     File.Move(fileInventoryResult.FullPath, targetFullPath);
@@ -101,16 +103,36 @@ public class PictureSorter
         return await Task.FromResult(sourceDirectoryInventory.Except(removedExistingFiles).ToList());
     }
 
-    private async Task MovePicturesToTheTargetFolderAsync(List<FileInventoryResult> sourceDirectoryInventory, string targetFolder, IProgress<string> progress, CancellationToken cancellationToken)
+    private async Task MovePicturesToTheTargetFolderAsync(List<FileInventoryResult> sourceDirectoryInventory, string targetFolder, IProgress<string> progress, int maxConcurrency, CancellationToken cancellationToken)
     {
-        for (var i = 0; i < sourceDirectoryInventory.Count; i++)
+        if (sourceDirectoryInventory.Count == 0)
+        {
+            return;
+        }
+        
+        var chunkSize = sourceDirectoryInventory.Count;
+        if (maxConcurrency < chunkSize)
+            chunkSize = (chunkSize + (maxConcurrency - 1)) / maxConcurrency;
+        
+        var chunks = sourceDirectoryInventory.Chunk(chunkSize);
+
+        progress.Report($"Found: {sourceDirectoryInventory.Count} total files in the Source Directory. We Split it in {maxConcurrency} parts with a chunk size {chunkSize}.");
+
+        var chunkTasks = chunks.Select((chunk, index) => MovePicturesToTheTargetFolderChunkedAsync(chunk, targetFolder, progress, index, cancellationToken)).ToList();
+
+        await Task.WhenAll(chunkTasks);
+    }
+
+    private async Task MovePicturesToTheTargetFolderChunkedAsync(FileInventoryResult[] sourceDirectoryInventory, string targetFolder, IProgress<string> progress, int taskNumber, CancellationToken cancellationToken)
+    {
+        for (var i = 0; i < sourceDirectoryInventory.Length; i++)
         {
             var fileInventoryResult = sourceDirectoryInventory[i];
-            var targetFullPath = Path.Combine(targetFolder, fileInventoryResult.GetDateFolderPart(),
-                fileInventoryResult.OriginalFileName);
-            Directory.CreateDirectory(targetFullPath);
-            progress.Report($"({i + 1}/{sourceDirectoryInventory.Count + 1}) We move the file to the target directory:");
-            progress.Report($"{fileInventoryResult.FullPath} => {targetFullPath}.");
+            var targetFullDirectoryPath = Path.Combine(targetFolder, fileInventoryResult.GetDateFolderPart()); 
+            var targetFullPath = Path.Combine(targetFullDirectoryPath, fileInventoryResult.OriginalFileName);
+            Directory.CreateDirectory(targetFullDirectoryPath);
+            progress.Report($"Task: {taskNumber} - ({i + 1}/{sourceDirectoryInventory.Length + 1}) - We move the file to the target directory:");
+            progress.Report($"Task: {taskNumber} - {fileInventoryResult.FullPath} => {targetFullPath}.");
             File.Move(fileInventoryResult.FullPath, targetFullPath);
         }
 

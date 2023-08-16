@@ -1,4 +1,6 @@
-﻿namespace PictureSort;
+﻿using Directory = MetadataExtractor.Directory;
+
+namespace PictureSort;
 
 public sealed class FileInventoryResult
 {
@@ -53,9 +55,16 @@ public sealed class FileInventoryResult
 
     public string GetDateFolderPart()
     {
+        if (CalculatedTakenTime == DateTime.MinValue)
+        {
+            return "Unknown";
+        }
+        
         return CalculatedTakenTime.ToString("yyyy")
-            + Path.PathSeparator
-            + CalculatedTakenTime.ToString("MMMM");
+            + Path.DirectorySeparatorChar
+            + CalculatedTakenTime.ToString("MMMM")
+            + Path.DirectorySeparatorChar
+            + CalculatedTakenTime.ToString("dd");
     }
 
     public void SetIgnored(string reason)
