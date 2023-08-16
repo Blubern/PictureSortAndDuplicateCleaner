@@ -123,19 +123,21 @@ public class PictureSorter
         await Task.WhenAll(chunkTasks);
     }
 
-    private async Task MovePicturesToTheTargetFolderChunkedAsync(FileInventoryResult[] sourceDirectoryInventory, string targetFolder, IProgress<string> progress, int taskNumber, CancellationToken cancellationToken)
+    private Task MovePicturesToTheTargetFolderChunkedAsync(FileInventoryResult[] sourceDirectoryInventory, string targetFolder, IProgress<string> progress, int taskNumber, CancellationToken cancellationToken)
     {
-        for (var i = 0; i < sourceDirectoryInventory.Length; i++)
+        return Task.Run(() =>
         {
-            var fileInventoryResult = sourceDirectoryInventory[i];
-            var targetFullDirectoryPath = Path.Combine(targetFolder, fileInventoryResult.GetDateFolderPart()); 
-            var targetFullPath = Path.Combine(targetFullDirectoryPath, fileInventoryResult.OriginalFileName);
-            Directory.CreateDirectory(targetFullDirectoryPath);
-            progress.Report($"Task: {taskNumber} - ({i + 1}/{sourceDirectoryInventory.Length + 1}) - We move the file to the target directory:");
-            progress.Report($"Task: {taskNumber} - {fileInventoryResult.FullPath} => {targetFullPath}.");
-            File.Move(fileInventoryResult.FullPath, targetFullPath);
-        }
-
-        await Task.CompletedTask;
+            for (var i = 0; i < sourceDirectoryInventory.Length; i++)
+            {
+                var fileInventoryResult = sourceDirectoryInventory[i];
+                var targetFullDirectoryPath = Path.Combine(targetFolder, fileInventoryResult.GetDateFolderPart());
+                var targetFullPath = Path.Combine(targetFullDirectoryPath, fileInventoryResult.OriginalFileName);
+                Directory.CreateDirectory(targetFullDirectoryPath);
+                progress.Report(
+                    $"Task: {taskNumber} - ({i + 1}/{sourceDirectoryInventory.Length + 1}) - We move the file to the target directory:");
+                progress.Report($"Task: {taskNumber} - {fileInventoryResult.FullPath} => {targetFullPath}.");
+                File.Move(fileInventoryResult.FullPath, targetFullPath);
+            }
+        });
     }
 }
