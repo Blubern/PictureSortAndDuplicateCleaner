@@ -32,13 +32,13 @@ public static class DuplicateFilesInDirectoryExtension
 
                 for (var i = 0; i < duplicatedFileGroup.Value.Count; i++)
                 {
-                    var duplicateFileTargetDirectory =
-                        Path.Combine(duplicateFilesTargetFolder, duplicatedFileGroup.Key);
+                    var duplicateFileTargetDirectory = Path.Combine(duplicateFilesTargetFolder, duplicatedFileGroup.Key);
                     var duplicateFile = duplicatedFileGroup.Value[i];
                     progress.Report($"{id+1}/{duplicateFilesSourceDictionary.Count} -  {duplicatedFileGroup.Key} ({duplicatedFileGroup.Value.Count}) - {duplicateFile}");
                     if (i > 0 && moveDuplicateFiles)
                     {
                         var targetFullPath = Path.Combine(duplicateFileTargetDirectory, duplicateFile.OriginalFileName);
+                        targetFullPath = targetFullPath.CheckIfFileExistsWhenYesIterateANumberOnTheEnd();
                         Directory.CreateDirectory(duplicateFileTargetDirectory);
                         progress.Report($"We move the file to the duplicate file directory: {duplicateFile.FullPath} => {targetFullPath}.");
                         File.Move(duplicateFile.FullPath, targetFullPath);

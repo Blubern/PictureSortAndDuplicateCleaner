@@ -90,6 +90,7 @@ public class PictureSorter
                 {
                     var targetFullDirectoryPath = Path.Combine(alreadyExistingFolder, fileInventoryResult.Hash); 
                     var targetFullPath = Path.Combine(targetFullDirectoryPath, fileInventoryResult.OriginalFileName);
+                    targetFullPath = targetFullPath.CheckIfFileExistsWhenYesIterateANumberOnTheEnd();
                     Directory.CreateDirectory(targetFullDirectoryPath);
                     progress.Report($"We move the file to the already existing file directory:  {fileInventoryResult.FullPath} => {targetFullPath} - {fileInventoryResult.Hash}.");
                     File.Move(fileInventoryResult.FullPath, targetFullPath);
@@ -133,6 +134,7 @@ public class PictureSorter
                 var fileInventoryResult = sourceDirectoryInventory[i];
                 var targetFullDirectoryPath = Path.Combine(targetFolder, fileInventoryResult.GetDateFolderPart());
                 var targetFullPath = Path.Combine(targetFullDirectoryPath, fileInventoryResult.OriginalFileName);
+                targetFullPath = targetFullPath.CheckIfFileExistsWhenYesIterateANumberOnTheEnd();
                 Directory.CreateDirectory(targetFullDirectoryPath);
                 progress.Report($"Task: {taskNumber} - ({i + 1}/{sourceDirectoryInventory.Length + 1}) - We move the file to the target directory: {fileInventoryResult.FullPath} => {targetFullPath} - {fileInventoryResult.Hash}.");
                 File.Move(fileInventoryResult.FullPath, targetFullPath);
