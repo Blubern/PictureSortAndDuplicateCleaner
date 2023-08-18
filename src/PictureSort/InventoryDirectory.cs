@@ -1,5 +1,6 @@
 ﻿using System.Globalization;
 using System.Security.Cryptography;
+using System.Text;
 using MetadataExtractor;
 using MetadataExtractor.Formats.Exif;
 using Microsoft.Extensions.Logging;
@@ -20,28 +21,41 @@ public class InventoryDirectory
         string directory,
         int maxConcurrency,
         IProgress<string> progress,
+        bool addExifAndFileInformation,
         CancellationToken cancellationToken)
     {
         var result = new List<FileInventoryResult>();
         
-        progress.Report("Read all files in the Directory.");
-        var files = Directory.GetFiles(directory, "*.*", SearchOption.AllDirectories);
-        progress.Report($"We found {files.Length} files in the directory.");
+        progress.Report("Try to read all files in the Directory.");
 
-        if (files.Length == 0)
+        var files = new List<string>();
+        var i = 0;
+        foreach (var file in Directory.EnumerateFiles(directory, "*", SearchOption.AllDirectories))
+        {
+            i++;
+            files.Add(file);
+            
+            if ((i % 250) == 0)
+            {
+                progress.Report($"We are still searching files currently we found {files.Count}.");
+            }
+        }
+        progress.Report($"We found {files.Count} files in the directory.");
+
+        if (files.Count == 0)
         {
             return result;
         }
         
-        var chunkSize = files.Length;
+        var chunkSize = files.Count;
         if (maxConcurrency < chunkSize)
             chunkSize = (chunkSize + (maxConcurrency - 1)) / maxConcurrency;
 
         var chunks = files.Chunk(chunkSize);
 
-        progress.Report($"Found: {files.Length} total files in {directory}. We Split it in {maxConcurrency} parts with a chunk size {chunkSize}.");
+        progress.Report($"Found: {files.Count} total files in {directory}. We Split it in {maxConcurrency} parts with a chunk size {chunkSize}.");
 
-        var chunkTasks = chunks.Select((chunk, index) => CheckFilesAsync(progress, chunk, index, cancellationToken)).ToList();
+        var chunkTasks = chunks.Select((chunk, index) => CheckFilesAsync(progress, chunk, index, addExifAndFileInformation, cancellationToken)).ToList();
 
         await Task.WhenAll(chunkTasks);
         
@@ -53,71 +67,86 @@ public class InventoryDirectory
         return result.AsReadOnly();
     }
 
-    private async Task<List<FileInventoryResult>> CheckFilesAsync(IProgress<string> progress, IList<string> files, int taskNumber, CancellationToken cancellationToken)
+    private async Task<List<FileInventoryResult>> CheckFilesAsync(
+        IProgress<string> progress,
+        IList<string> files,
+        int taskNumber, 
+        bool addExifAndFileInformation,
+        CancellationToken cancellationToken)
     {
         var result = new List<FileInventoryResult>();
-        using var hashAlgorithm = MD5.Create();
-
-        var i = 1;
-        foreach (var file in files)
+        await Task.Run(async () =>
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            
-            var hash = await GetFileHashAsync(file, hashAlgorithm);
-            var originalFileName = Path.GetFileName(file);
-            var creationTime = File.GetCreationTime(file);
-            var lastWriteTime = File.GetLastWriteTime(file);
-            var lastAccessTime = File.GetLastAccessTime(file);
+            using var hashAlgorithm = MD5.Create();
 
-            string? originalDateAsString = null;
-            DateTime? originalDate = null;
-
-            try
+            var i = 1;
+            foreach (var file in files)
             {
-                var directories = ImageMetadataReader.ReadMetadata(file);
-                var exifSubDirectory = directories.OfType<ExifSubIfdDirectory>().FirstOrDefault();
-                originalDateAsString = exifSubDirectory?.GetDescription(ExifDirectoryBase.TagDateTimeOriginal);
+                cancellationToken.ThrowIfCancellationRequested();
 
-                if (!string.IsNullOrWhiteSpace(originalDateAsString))
+                var hash = await GetFileHashAsync(file, hashAlgorithm);
+                var originalFileName = Path.GetFileName(file);
+                var creationTime = DateTime.MinValue;
+                var lastWriteTime = DateTime.MinValue;
+                var lastAccessTime = DateTime.MinValue;
+                string? originalDateAsString = null;
+                DateTime? originalDate = null;
+                
+                if (addExifAndFileInformation)
                 {
+                    creationTime = File.GetCreationTime(file);
+                    lastWriteTime = File.GetLastWriteTime(file);
+                    lastAccessTime = File.GetLastAccessTime(file);
+
                     try
                     {
-                        originalDate = DateTime.ParseExact(originalDateAsString, "yyyy:MM:dd HH:mm:ss",
-                            CultureInfo.InvariantCulture);
+                        var directories = ImageMetadataReader.ReadMetadata(file);
+                        var exifSubDirectory = directories.OfType<ExifSubIfdDirectory>().FirstOrDefault();
+                        originalDateAsString = exifSubDirectory?.GetDescription(ExifDirectoryBase.TagDateTimeOriginal);
+
+                        if (!string.IsNullOrWhiteSpace(originalDateAsString))
+                        {
+                            try
+                            {
+                                originalDate = DateTime.ParseExact(originalDateAsString, "yyyy:MM:dd HH:mm:ss",
+                                    CultureInfo.InvariantCulture);
+                            }
+                            catch (FormatException)
+                            {
+                                try
+                                {
+                                    originalDate = DateTime.ParseExact(originalDateAsString, "yyyy-MM-dd HH:mm:ss",
+                                        CultureInfo.InvariantCulture);
+                                }
+                                catch (FormatException)
+                                {
+                                }
+                            }
+                        }
                     }
-                    catch (FormatException)
+                    catch (Exception e)
                     {
-                        try
-                        {
-                            originalDate = DateTime.ParseExact(originalDateAsString, "yyyy-MM-dd HH:mm:ss",
-                                CultureInfo.InvariantCulture);
-                        }
-                        catch (FormatException)
-                        {
-                        }
+                        _logger.LogError(e, $"Exception when reading the Metadata of the file {file}.");
                     }
                 }
+
+                var fileInventoryResult = new FileInventoryResult(
+                    file,
+                    hash,
+                    creationTime,
+                    lastWriteTime,
+                    lastAccessTime,
+                    originalDateAsString,
+                    originalDate,
+                    originalFileName);
+
+                result.Add(fileInventoryResult);
+
+                progress.Report($"Task: {taskNumber} - File {i}/{files.Count} - Checked {fileInventoryResult}.");
+                i++;
             }
-            catch (ImageProcessingException e)
-            {
-            }
-
-            var fileInventoryResult = new FileInventoryResult(
-                file,
-                hash,
-                creationTime,
-                lastWriteTime,
-                lastAccessTime,
-                originalDateAsString,
-                originalDate,
-                originalFileName);
-
-            result.Add(fileInventoryResult);
-
-            progress.Report($"Task: {taskNumber} - File {i}/{files.Count} - Checked {fileInventoryResult}.");
-            i++;
-        }
-
+        });
+        
         return result;
     }
 
@@ -125,6 +154,12 @@ public class InventoryDirectory
     {
         await using var fs = File.OpenRead(file);
         var hashBytes = await hashAlgorithm.ComputeHashAsync(fs);
-        return Convert.ToBase64String(hashBytes);
+        var sb = new StringBuilder();
+        foreach (var b in hashBytes)
+        {
+            sb.Append(b.ToString("x2").ToLower());
+        }
+
+        return sb.ToString();
     }
 }

@@ -4,7 +4,7 @@ using System.Linq;
 
 public static class DuplicateFilesInDirectoryExtension
 {
-    public static Task<List<FileInventoryResult>> CheckForDuplicateFilesAndMoveAsync(
+    public static Task CheckForDuplicateFilesAndMoveAsync(
         this IReadOnlyList<FileInventoryResult> inventoryResult,
         string directory,
         IProgress<string> progress,
@@ -12,8 +12,6 @@ public static class DuplicateFilesInDirectoryExtension
         string duplicateFilesTargetFolder,
         CancellationToken cancellationToken)
     {
-        var removedDuplicateFiles = new List<FileInventoryResult>();
-        
         progress.Report($"Check for duplicated files in the Directory: {directory}.");
         var duplicateFilesSourceDictionary = inventoryResult
             .GroupBy(a => a.Hash)
@@ -26,30 +24,33 @@ public static class DuplicateFilesInDirectoryExtension
         if (duplicateFilesSourceDictionary.Count > 0)
         {
             progress.Report($"We found duplicated Files (Directory {directory}):");
-           
-            foreach (var duplicatedFileGroup in duplicateFilesSourceDictionary)
+
+            for (var id = 0; id < duplicateFilesSourceDictionary.Count; id++)
             {
+                var duplicatedFileGroup = duplicateFilesSourceDictionary[id];
                 cancellationToken.ThrowIfCancellationRequested();
-                
+
                 for (var i = 0; i < duplicatedFileGroup.Value.Count; i++)
                 {
-                    var duplicateFileTargetDirectory = Path.Combine(duplicateFilesTargetFolder,  duplicatedFileGroup.Key);
+                    var duplicateFileTargetDirectory =
+                        Path.Combine(duplicateFilesTargetFolder, duplicatedFileGroup.Key);
                     var duplicateFile = duplicatedFileGroup.Value[i];
-                    progress.Report($"{duplicatedFileGroup.Key} ({duplicatedFileGroup.Value.Count}) - {duplicateFile}");
+                    progress.Report($"{id+1}/{duplicateFilesSourceDictionary.Count} -  {duplicatedFileGroup.Key} ({duplicatedFileGroup.Value.Count}) - {duplicateFile}");
                     if (i > 0 && moveDuplicateFiles)
                     {
                         var targetFullPath = Path.Combine(duplicateFileTargetDirectory, duplicateFile.OriginalFileName);
                         Directory.CreateDirectory(duplicateFileTargetDirectory);
-                        progress.Report("We move the file to the duplicate file directory:");
-                        progress.Report($"{duplicateFile.FullPath} => {targetFullPath}.");
+                        progress.Report($"We move the file to the duplicate file directory: {duplicateFile.FullPath} => {targetFullPath}.");
                         File.Move(duplicateFile.FullPath, targetFullPath);
-                        
-                        removedDuplicateFiles.Add(duplicateFile);
+
+                        var ignoreMessage = $"This file is a duplicate file - Duplicate Files are: {string.Join(",", duplicatedFileGroup.Value.Select(a => a.FullPath))}.";
+                        duplicateFile.SetIgnored(ignoreMessage);
+                        progress.Report(ignoreMessage);
                     }
                 }
             }
         }
-        
-        return Task.FromResult(inventoryResult.Except(removedDuplicateFiles).ToList());
+
+        return Task.CompletedTask;
     }
 }
