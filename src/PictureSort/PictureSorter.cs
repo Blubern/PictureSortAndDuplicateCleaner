@@ -74,20 +74,35 @@ public class PictureSorter
     {
         progress.Report("Checking for files who already exists in the target.");
 
-        var sourceDirectoryHashes = sourceDirectoryInventory.Where(a => !a.IsIgnored).Select(a => a.Hash).Distinct().ToList();
-        var targetDirectoryHashes = targetDirectoryInventory.Where(a => !a.IsIgnored).Select(a => a.Hash).Distinct().ToList();
+        var sourceDirectoryHashes = sourceDirectoryInventory
+            .Where(a => !a.IsIgnored)
+            .Select(a => a.Hash)
+            .Distinct()
+            .ToList();
+        
+        var targetDirectoryHashes = targetDirectoryInventory
+            .Where(a => !a.IsIgnored)
+            .Select(a => a.Hash)
+            .Distinct()
+            .ToList();
 
-        var hashesAlreadyExistsInTarget = sourceDirectoryHashes.Intersect(targetDirectoryHashes).ToList();
+        var hashesAlreadyExistsInTarget = sourceDirectoryHashes
+            .Intersect(targetDirectoryHashes)
+            .ToList();
 
         if (hashesAlreadyExistsInTarget.Any())
         {
             progress.Report($"We found {hashesAlreadyExistsInTarget.Count} files who already exists in the target.");
 
-            foreach (var hash in hashesAlreadyExistsInTarget)
+            for (var i = 0; i < hashesAlreadyExistsInTarget.Count; i++)
             {
+                var hash = hashesAlreadyExistsInTarget[i];
                 cancellationToken.ThrowIfCancellationRequested();
 
-                var filesAlreadyExists = sourceDirectoryInventory.Where(a => !a.IsIgnored).Where(a => a.Hash.Equals(hash)).ToList();
+                var filesAlreadyExists = sourceDirectoryInventory
+                    .Where(a => !a.IsIgnored)
+                    .Where(a => a.Hash.Equals(hash))
+                    .ToList();
 
                 foreach (var fileInventoryResult in filesAlreadyExists)
                 {
@@ -95,7 +110,7 @@ public class PictureSorter
                     var targetFullPath = Path.Combine(targetFullDirectoryPath, fileInventoryResult.OriginalFileName);
                     targetFullPath = targetFullPath.CheckIfFileExistsWhenYesIterateANumberOnTheEnd();
                     Directory.CreateDirectory(targetFullDirectoryPath);
-                    progress.Report($"We move the file to the already existing file directory:  {fileInventoryResult.FullPath} => {targetFullPath} - {fileInventoryResult.Hash}.");
+                    progress.Report($"({i}/{hashesAlreadyExistsInTarget.Count}) - We move the file to the already existing file directory:  {fileInventoryResult.FullPath} => {targetFullPath} - {fileInventoryResult.Hash}.");
                     File.Move(fileInventoryResult.FullPath, targetFullPath);
                     var ignoreMessage = "The File exists already in the Target.";
                     fileInventoryResult.SetIgnored(ignoreMessage);
@@ -114,7 +129,9 @@ public class PictureSorter
             return;
         }
 
-        var sourceList = sourceDirectoryInventory.Where(a => !a.IsIgnored).ToList();
+        var sourceList = sourceDirectoryInventory
+            .Where(a => !a.IsIgnored)
+            .ToList();
 
         var chunkSize = sourceList.Count;
         if (maxConcurrency < chunkSize)
@@ -122,10 +139,11 @@ public class PictureSorter
 
         var chunks = sourceList.Chunk(chunkSize);
 
-        progress.Report(
-            $"Found: {sourceList.Count} total files in the Source Directory. We Split it in {maxConcurrency} parts with a chunk size {chunkSize}.");
+        progress.Report($"Found: {sourceList.Count} total files in the Source Directory. We Split it in {maxConcurrency} parts with a chunk size {chunkSize}.");
 
-        var chunkTasks = chunks.Select((chunk, index) => MovePicturesToTheTargetFolderChunkedAsync(chunk, targetFolder, progress, index, cancellationToken)).ToList();
+        var chunkTasks = chunks
+            .Select((chunk, index) => MovePicturesToTheTargetFolderChunkedAsync(chunk, targetFolder, progress, index, cancellationToken))
+            .ToList();
 
         await Task.WhenAll(chunkTasks);
     }
@@ -142,8 +160,7 @@ public class PictureSorter
                 var targetFullPath = Path.Combine(targetFullDirectoryPath, fileInventoryResult.OriginalFileName);
                 targetFullPath = targetFullPath.CheckIfFileExistsWhenYesIterateANumberOnTheEnd();
                 Directory.CreateDirectory(targetFullDirectoryPath);
-                progress.Report(
-                    $"Task: {taskNumber} - ({i + 1}/{sourceDirectoryInventory.Length + 1}) - We move the file to the target directory: {fileInventoryResult.FullPath} => {targetFullPath} - {fileInventoryResult.Hash}.");
+                progress.Report($"Task: {taskNumber} - ({i + 1}/{sourceDirectoryInventory.Length + 1}) - We move the file to the target directory: {fileInventoryResult.FullPath} => {targetFullPath} - {fileInventoryResult.Hash}.");
                 File.Move(fileInventoryResult.FullPath, targetFullPath);
             }
         });

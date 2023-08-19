@@ -91,7 +91,7 @@ public class InventoryDirectory
                 var lastAccessTime = DateTime.MinValue;
                 string? originalDateAsString = null;
                 DateTime? originalDate = null;
-                
+
                 if (addExifAndFileInformation)
                 {
                     creationTime = File.GetCreationTime(file);
@@ -130,16 +130,26 @@ public class InventoryDirectory
                     }
                 }
 
-                var fileInventoryResult = new FileInventoryResult(
+                FileInventoryResult fileInventoryResult;
+                if (addExifAndFileInformation)
+                {
+                    fileInventoryResult = new FileInventoryResult(
                     file,
-                    hash,
-                    creationTime,
-                    lastWriteTime,
-                    lastAccessTime,
-                    originalDateAsString,
-                    originalDate,
-                    originalFileName);
-
+                        hash,
+                        creationTime,
+                        lastWriteTime,
+                        lastAccessTime,
+                        originalDateAsString,
+                        originalDate,
+                        originalFileName);
+                }
+                else
+                {
+                    fileInventoryResult = new FileInventoryResult(
+                        file,
+                        hash,
+                        originalFileName);
+                }
                 result.Add(fileInventoryResult);
 
                 progress.Report($"Task: {taskNumber} - File {i}/{files.Count} - Checked {fileInventoryResult}.");

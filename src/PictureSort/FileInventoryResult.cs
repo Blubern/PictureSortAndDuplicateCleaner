@@ -4,6 +4,23 @@ namespace PictureSort;
 
 public sealed class FileInventoryResult
 {
+    private bool _isOnlyHash;
+    
+    public FileInventoryResult(string fullPath, string hash, string originalFileName)
+    {
+        FullPath = fullPath;
+        Hash = hash;
+        CreationTime = DateTime.MinValue;
+        LastWriteTime = DateTime.MinValue;
+        LastAccessTime = DateTime.MinValue;
+        OriginalDateAsString = string.Empty;
+        OriginalDate = DateTime.MinValue;
+        OriginalFileName = originalFileName;
+        IgnoredReason = string.Empty;
+        IsIgnored = false;
+        _isOnlyHash = true;
+    }
+    
     public FileInventoryResult(string fullPath, string hash, DateTime? creationTime, DateTime? lastWriteTime, DateTime? lastAccessTime, string? originalDateAsString, DateTime? originalDate, string originalFileName)
     {
         FullPath = fullPath;
@@ -16,6 +33,7 @@ public sealed class FileInventoryResult
         OriginalFileName = originalFileName;
         IgnoredReason = string.Empty;
         IsIgnored = false;
+        _isOnlyHash = false;
     }
 
     public string FullPath { get; }
@@ -75,7 +93,17 @@ public sealed class FileInventoryResult
 
     public override string ToString()
     {
-        return $"{nameof(CreationTime)}: {CreationTime}, {nameof(LastWriteTime)}: {LastWriteTime}, {nameof(LastAccessTime)}: {LastAccessTime}, {nameof(OriginalDateAsString)}: {OriginalDateAsString}, {nameof(OriginalDate)}: {OriginalDate}, {nameof(OriginalFileName)}: {OriginalFileName}, {nameof(CalculatedTakenTime)}: {CalculatedTakenTime}, {nameof(IsIgnored)}: {IsIgnored}, {nameof(IgnoredReason)}: {IgnoredReason}, {nameof(FullPath)}: {FullPath}, {nameof(Hash)}: {Hash}, ";
+        if (IsIgnored)
+        {
+            return $"{nameof(Hash)}: {Hash} - {nameof(IsIgnored)}: {IsIgnored}, {nameof(IgnoredReason)}: {IgnoredReason}, {nameof(OriginalFileName)}: {OriginalFileName}, {nameof(FullPath)}: {FullPath}";
+        }
+        
+        if (_isOnlyHash)
+        {
+            return $"{nameof(Hash)}: {Hash} - {nameof(OriginalFileName)}: {OriginalFileName}, {nameof(IsIgnored)}: {IsIgnored}, {nameof(FullPath)}: {FullPath}";            
+        }
+        
+        return $"{nameof(Hash)}: {Hash} - {nameof(CreationTime)}: {CreationTime}, {nameof(LastWriteTime)}: {LastWriteTime}, {nameof(LastAccessTime)}: {LastAccessTime}, {nameof(OriginalDateAsString)}: {OriginalDateAsString}, {nameof(OriginalDate)}: {OriginalDate}, {nameof(OriginalFileName)}: {OriginalFileName}, {nameof(CalculatedTakenTime)}: {CalculatedTakenTime}, {nameof(IsIgnored)}: {IsIgnored}, {nameof(FullPath)}: {FullPath}";
     }
 
     public override bool Equals(object? obj)
