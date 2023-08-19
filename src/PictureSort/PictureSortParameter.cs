@@ -2,30 +2,45 @@
 
 public class PictureSortParameter
 {
-    public PictureSortParameter(string sourceDirectory, string targetDirectory)
-    : this(sourceDirectory, targetDirectory, 1)
+    public PictureSortParameter(
+        IReadOnlyList<string> sourceDirectories,
+        string targetDirectory,
+        int maxConcurrency,
+        string duplicateFolderName,
+        string alreadyExistingFolderName)
     {
-    }
-
-    public PictureSortParameter(string sourceDirectory, string targetDirectory, uint maxConcurrency)
-    {
-        SourceDirectory = sourceDirectory;
+        SourceDirectories = sourceDirectories;
         TargetDirectory = targetDirectory;
         MaxConcurrency = maxConcurrency;
-        DuplicateFolderName = "!Duplicate";
+        DuplicateFolderName = duplicateFolderName;
+        AlreadyExistingFolderName = alreadyExistingFolderName;
         MoveDuplicateFilesInSourceDirectory = true;
         MoveDuplicateFilesInTargetDirectory = true;
-        DuplicateFilesTargetFolderInSourceDirectory = Path.Combine(SourceDirectory, DuplicateFolderName);
-        DuplicateFilesTargetFolderInTargetDirectory = Path.Combine(TargetDirectory, DuplicateFolderName);
-        AlreadyExistingFolderName = "!ExistsInTarget";
-        AlreadyExistingFolder = Path.Combine(SourceDirectory, AlreadyExistingFolderName);
+
+        foreach (var sourceDirectory in SourceDirectories)
+        {
+            if (!Directory.Exists(sourceDirectory))
+            {
+                throw new ArgumentException($"The source directory '{sourceDirectory}' does not exist!");
+            }
+        }
+        
+        if (!Directory.Exists(targetDirectory))
+        {
+            throw new ArgumentException($"The target directory '{targetDirectory}' does not exist!");
+        }
+        
+        if (maxConcurrency < 0)
+        {
+            throw new ArgumentException("MAX_CONCURRENCY has to be a value greater 0");
+        }
     }
 
-    public string SourceDirectory { get; }
+    public IReadOnlyList<string> SourceDirectories { get; }
 
     public string TargetDirectory { get; }
 
-    public uint MaxConcurrency { get; }
+    public int MaxConcurrency { get; }
 
     public bool MoveDuplicateFilesInSourceDirectory { get; }
     
@@ -33,16 +48,10 @@ public class PictureSortParameter
     
     public string DuplicateFolderName { get; }
     
-    public string DuplicateFilesTargetFolderInSourceDirectory { get; }
-    
-    public string DuplicateFilesTargetFolderInTargetDirectory { get; }
-    
     public string AlreadyExistingFolderName { get; }
-    
-    public string AlreadyExistingFolder { get; }
-    
+
     public override string ToString()
     {
-        return $"{nameof(SourceDirectory)}: {SourceDirectory}, {nameof(TargetDirectory)}: {TargetDirectory}, {nameof(MaxConcurrency)}: {MaxConcurrency}";
+        return $"{nameof(SourceDirectories)}: {SourceDirectories}, {nameof(TargetDirectory)}: {TargetDirectory}, {nameof(MaxConcurrency)}: {MaxConcurrency}, {nameof(MoveDuplicateFilesInSourceDirectory)}: {MoveDuplicateFilesInSourceDirectory}, {nameof(MoveDuplicateFilesInTargetDirectory)}: {MoveDuplicateFilesInTargetDirectory}, {nameof(DuplicateFolderName)}: {DuplicateFolderName}, {nameof(AlreadyExistingFolderName)}: {AlreadyExistingFolderName}";
     }
 }

@@ -16,43 +16,41 @@ public class PictureSorter
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-
+        
         progress.Report($"Starting the Picture sort process. With the following Parameter {pictureSortParameter}.");
 
         progress.Report($"Making a inventor of the Source Directory.");
         var sourceDirectoryInventoryOriginal = await _inventoryDirectory.InventoryADirectoryAsync(
-            pictureSortParameter.SourceDirectory,
-            (int) pictureSortParameter.MaxConcurrency,
+            pictureSortParameter.SourceDirectories,
+            pictureSortParameter.MaxConcurrency,
             progress,
             true,
             cancellationToken);
 
         progress.Report($"Making a inventor of the Target Directory.");
         var targetDirectoryInventoryOriginal = await _inventoryDirectory.InventoryADirectoryAsync(
-            pictureSortParameter.TargetDirectory,
-            (int) pictureSortParameter.MaxConcurrency,
+            new [] { pictureSortParameter.TargetDirectory },
+            pictureSortParameter.MaxConcurrency,
             progress,
             false,
             cancellationToken);
 
         await sourceDirectoryInventoryOriginal.CheckForDuplicateFilesAndMoveAsync(
-            directory: pictureSortParameter.SourceDirectory,
             progress: progress,
             moveDuplicateFiles: pictureSortParameter.MoveDuplicateFilesInSourceDirectory,
-            duplicateFilesTargetFolder: pictureSortParameter.DuplicateFilesTargetFolderInSourceDirectory,
+            duplicateFolderName: pictureSortParameter.DuplicateFolderName,
             cancellationToken: cancellationToken);
 
         await targetDirectoryInventoryOriginal.CheckForDuplicateFilesAndMoveAsync(
-            directory: pictureSortParameter.TargetDirectory,
             progress: progress,
             moveDuplicateFiles: pictureSortParameter.MoveDuplicateFilesInTargetDirectory,
-            duplicateFilesTargetFolder: pictureSortParameter.DuplicateFilesTargetFolderInTargetDirectory,
+            duplicateFolderName: pictureSortParameter.DuplicateFolderName,
             cancellationToken: cancellationToken);
 
         await CheckForExistingFilesInTargetAsync(
             sourceDirectoryInventory: sourceDirectoryInventoryOriginal,
             targetDirectoryInventory: targetDirectoryInventoryOriginal,
-            alreadyExistingFolder: pictureSortParameter.AlreadyExistingFolder,
+            alreadyExistingFolderName: pictureSortParameter.AlreadyExistingFolderName,
             progress: progress,
             cancellationToken: cancellationToken);
 
@@ -60,17 +58,24 @@ public class PictureSorter
             sourceDirectoryInventoryOriginal,
             pictureSortParameter.TargetDirectory,
             progress,
-            (int) pictureSortParameter.MaxConcurrency,
+            pictureSortParameter.MaxConcurrency,
             cancellationToken);
 
-        DeleteEmptyDirectory(pictureSortParameter.SourceDirectory);
+        progress.Report("Cleaning Empty Directories in the Source Directories.");
+        foreach (var sourceDirectory in pictureSortParameter.SourceDirectories)
+        {
+            DeleteEmptyDirectory(sourceDirectory);
+        }
 
         return await Task.FromResult(new PictureSortResult());
     }
 
-    private Task CheckForExistingFilesInTargetAsync(IReadOnlyList<FileInventoryResult> sourceDirectoryInventory,
-        IReadOnlyList<FileInventoryResult> targetDirectoryInventory, string alreadyExistingFolder,
-        IProgress<string> progress, CancellationToken cancellationToken)
+    private Task CheckForExistingFilesInTargetAsync(
+        IReadOnlyList<FileInventoryResult> sourceDirectoryInventory,
+        IReadOnlyList<FileInventoryResult> targetDirectoryInventory,
+        string alreadyExistingFolderName,
+        IProgress<string> progress,
+        CancellationToken cancellationToken)
     {
         progress.Report("Checking for files who already exists in the target.");
 
@@ -106,7 +111,7 @@ public class PictureSorter
 
                 foreach (var fileInventoryResult in filesAlreadyExists)
                 {
-                    var targetFullDirectoryPath = Path.Combine(alreadyExistingFolder, fileInventoryResult.Hash);
+                    var targetFullDirectoryPath = Path.Combine(fileInventoryResult.OriginalDirectory, alreadyExistingFolderName, fileInventoryResult.Hash);
                     var targetFullPath = Path.Combine(targetFullDirectoryPath, fileInventoryResult.OriginalFileName);
                     targetFullPath = targetFullPath.CheckIfFileExistsWhenYesIterateANumberOnTheEnd();
                     Directory.CreateDirectory(targetFullDirectoryPath);

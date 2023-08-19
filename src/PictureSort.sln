@@ -4,6 +4,12 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PictureSort.Cmd", "PictureS
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PictureSort", "PictureSort\PictureSort.csproj", "{738C27AA-B1EF-43C7-B03B-E85862C74DE6}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docker", "Docker", "{5FA35DBF-DFA7-4854-B766-8C4AB1FE8624}"
+	ProjectSection(SolutionItems) = preProject
+		Dockerfile = Dockerfile
+		.dockerignore = .dockerignore
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

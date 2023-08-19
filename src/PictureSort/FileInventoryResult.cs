@@ -6,9 +6,10 @@ public sealed class FileInventoryResult
 {
     private bool _isOnlyHash;
     
-    public FileInventoryResult(string fullPath, string hash, string originalFileName)
+    public FileInventoryResult(string fullPath, string originalDirectory, string hash, string originalFileName)
     {
         FullPath = fullPath;
+        OriginalDirectory = originalDirectory;
         Hash = hash;
         CreationTime = DateTime.MinValue;
         LastWriteTime = DateTime.MinValue;
@@ -21,9 +22,10 @@ public sealed class FileInventoryResult
         _isOnlyHash = true;
     }
     
-    public FileInventoryResult(string fullPath, string hash, DateTime? creationTime, DateTime? lastWriteTime, DateTime? lastAccessTime, string? originalDateAsString, DateTime? originalDate, string originalFileName)
+    public FileInventoryResult(string fullPath, string originalDirectory, string hash, DateTime? creationTime, DateTime? lastWriteTime, DateTime? lastAccessTime, string? originalDateAsString, DateTime? originalDate, string originalFileName)
     {
         FullPath = fullPath;
+        OriginalDirectory = originalDirectory;
         Hash = hash;
         CreationTime = creationTime;
         LastWriteTime = lastWriteTime;
@@ -37,6 +39,8 @@ public sealed class FileInventoryResult
     }
 
     public string FullPath { get; }
+    
+    public string OriginalDirectory { get; }
     
     public string Hash { get; }
 

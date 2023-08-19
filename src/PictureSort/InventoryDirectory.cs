@@ -18,7 +18,7 @@ public class InventoryDirectory
     }
 
     public async Task<IReadOnlyList<FileInventoryResult>> InventoryADirectoryAsync(
-        string directory,
+        IReadOnlyList<string> directories,
         int maxConcurrency,
         IProgress<string> progress,
         bool addExifAndFileInformation,
@@ -28,50 +28,57 @@ public class InventoryDirectory
         
         progress.Report("Try to read all files in the Directory.");
 
-        var files = new List<string>();
-        var i = 0;
-        foreach (var file in Directory.EnumerateFiles(directory, "*", SearchOption.AllDirectories))
+        foreach (var directory in directories)
         {
-            i++;
-            files.Add(file);
+            progress.Report($"Try to read all files in the Directory {directory}.");
             
-            if ((i % 250) == 0)
+            var files = new List<string>();
+            var i = 0;
+            foreach (var file in Directory.EnumerateFiles(directory, "*", SearchOption.AllDirectories))
             {
-                progress.Report($"We are still searching files currently we found {files.Count}.");
+                i++;
+                files.Add(file);
+
+                if ((i % 250) == 0)
+                {
+                    progress.Report($"We are still searching files currently we found {files.Count}.");
+                }
+            }
+
+            progress.Report($"We found {files.Count} files in the directory.");
+
+            if (files.Count == 0)
+            {
+                return result;
+            }
+
+            var chunkSize = files.Count;
+            if (maxConcurrency < chunkSize)
+                chunkSize = (chunkSize + (maxConcurrency - 1)) / maxConcurrency;
+
+            var chunks = files.Chunk(chunkSize);
+
+            progress.Report($"Found: {files.Count} total files in {directory}. We Split it in {maxConcurrency} parts with a chunk size {chunkSize}.");
+
+            var chunkTasks = chunks.Select((chunk, index) =>
+                CheckFilesAsync(progress, chunk, index, addExifAndFileInformation, directory, cancellationToken)).ToList();
+
+            await Task.WhenAll(chunkTasks);
+
+            foreach (var chunkTask in chunkTasks)
+            {
+                result.AddRange(chunkTask.Result);
             }
         }
-        progress.Report($"We found {files.Count} files in the directory.");
 
-        if (files.Count == 0)
-        {
-            return result;
-        }
-        
-        var chunkSize = files.Count;
-        if (maxConcurrency < chunkSize)
-            chunkSize = (chunkSize + (maxConcurrency - 1)) / maxConcurrency;
-
-        var chunks = files.Chunk(chunkSize);
-
-        progress.Report($"Found: {files.Count} total files in {directory}. We Split it in {maxConcurrency} parts with a chunk size {chunkSize}.");
-
-        var chunkTasks = chunks.Select((chunk, index) => CheckFilesAsync(progress, chunk, index, addExifAndFileInformation, cancellationToken)).ToList();
-
-        await Task.WhenAll(chunkTasks);
-        
-        foreach (var chunkTask in chunkTasks)
-        {
-            result.AddRange(chunkTask.Result);
-        }
-       
         return result.AsReadOnly();
     }
 
-    private async Task<List<FileInventoryResult>> CheckFilesAsync(
-        IProgress<string> progress,
+    private async Task<List<FileInventoryResult>> CheckFilesAsync(IProgress<string> progress,
         IList<string> files,
-        int taskNumber, 
+        int taskNumber,
         bool addExifAndFileInformation,
+        string directory,
         CancellationToken cancellationToken)
     {
         var result = new List<FileInventoryResult>();
@@ -134,7 +141,8 @@ public class InventoryDirectory
                 if (addExifAndFileInformation)
                 {
                     fileInventoryResult = new FileInventoryResult(
-                    file,
+                        file,
+                        directory,
                         hash,
                         creationTime,
                         lastWriteTime,
@@ -147,6 +155,7 @@ public class InventoryDirectory
                 {
                     fileInventoryResult = new FileInventoryResult(
                         file,
+                        directory,
                         hash,
                         originalFileName);
                 }

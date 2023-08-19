@@ -7,10 +7,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\ExifTool\ExifTool.csproj" />
-    </ItemGroup>
-
-    <ItemGroup>
       <PackageReference Include="MetadataExtractor" Version="2.8.0" />
       <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="7.0.1" />
     </ItemGroup>
