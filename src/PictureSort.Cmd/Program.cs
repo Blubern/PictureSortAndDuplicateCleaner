@@ -1,18 +1,26 @@
 ﻿using System.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using PictureSort;
 using PictureSort.Cmd;
+using Serilog;
 
 var cancellationTokenSource = new CancellationTokenSource();
 var sourceDirectories = new List<string>(); 
 
-Console.Out.WriteLine("Try to read Environment Variable.");
+var loggingTarget = Environment.GetEnvironmentVariable("LOGGING_TARGET") ?? "pictureSortLogging.txt";
+
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Debug()
+    .WriteTo.File(loggingTarget, rollingInterval: RollingInterval.Day)
+    .WriteTo.Console()
+    .CreateLogger();
+
+Log.Debug("Try to read Environment Variable");
 var pictureSource = Environment.GetEnvironmentVariable("PICTURE_SOURCE");
 
 if (string.IsNullOrWhiteSpace(pictureSource))
 {
-    Console.Out.WriteLine("You have to specify a Source Directory on the Env Variable PICTURE_SOURCE");
+    Log.Error("You have to specify a Source Directory on the Env Variable PICTURE_SOURCE");
     return;
 }
 
@@ -29,20 +37,7 @@ var pictureTarget = Environment.GetEnvironmentVariable("PICTURE_TARGET");
 
 if (string.IsNullOrWhiteSpace(pictureTarget))
 {
-    Console.Out.WriteLine("You have to specify a Target Directory on the Env Variable PICTURE_TARGET");
-    return;
-}
-
-var loggingTarget = Environment.GetEnvironmentVariable("LOGGING_TARGET");
-if (string.IsNullOrWhiteSpace(loggingTarget))
-{
-    Console.Out.WriteLine("You have to specify a Logging Directory on the Env Variable LOGGING_TARGET");
-    return;
-}
-
-if (!Directory.Exists(loggingTarget))
-{
-    Console.Out.WriteLine($"The Logging Directory '{loggingTarget}' does not exist.");
+    Log.Error("You have to specify a Target Directory on the Env Variable PICTURE_TARGET");
     return;
 }
 
@@ -53,13 +48,15 @@ var alreadyExistingFolderName = Environment.GetEnvironmentVariable("ALREADY_EXIS
 var serviceProvider = new ServiceCollection()
     .AddScoped<PictureSorter>()
     .AddScoped<InventoryDirectory>()
-    .AddLogging(loggingBuilder => loggingBuilder
-        .AddConsole()
-        .AddFile( loggingTarget + "\\pictureSorter-{Date}.txt")
-        .SetMinimumLevel(LogLevel.Debug))
+    .AddScoped<ConsoleProgress>()
     .BuildServiceProvider();
 
-var logger = serviceProvider.GetRequiredService<ILogger<Program>>();
+Log.Debug("PICTURE_SOURCE: {PictureSource}", pictureSource);
+Log.Debug("LOGGING_TARGET: {PictureSource}", loggingTarget);
+Log.Debug("PICTURE_TARGET: {PictureSource}", pictureTarget);
+Log.Debug("MAX_CONCURRENCY: {PictureSource}", maxConcurrency);
+Log.Debug("DUPLICATE_FOLDER_NAME: {PictureSource}", duplicateFolderName);
+Log.Debug("ALREADY_EXISTING_FOLDER_NAME: {PictureSource}", alreadyExistingFolderName);
 
 var pictureSorter = serviceProvider.GetRequiredService<PictureSorter>();
 var parameter = new PictureSortParameter(
@@ -73,14 +70,14 @@ try
 {
     var result = await pictureSorter.StartPictureSortAsync(
         parameter,
-        new ConsoleProgress(serviceProvider.GetRequiredService<ILogger<ConsoleProgress>>()),
+        serviceProvider.GetRequiredService<ConsoleProgress>(),
         cancellationTokenSource.Token);
 }
 catch (Exception e)
 {
-    logger.LogError(e, "Something is wrong :(");
+    Log.Error(e, "Something is wrong :(");
     Debugger.Break();
     throw;
 }
 
-Console.WriteLine("Finished with all ... Have a good day :) ...");
+Log.Information("Finished with all ... Have a good day :) ...");

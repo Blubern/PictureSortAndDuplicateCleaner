@@ -3,20 +3,12 @@ using System.Security.Cryptography;
 using System.Text;
 using MetadataExtractor;
 using MetadataExtractor.Formats.Exif;
-using Microsoft.Extensions.Logging;
 using Directory = System.IO.Directory;
 
 namespace PictureSort;
 
 public class InventoryDirectory
 {
-    private readonly ILogger<InventoryDirectory> _logger;
-
-    public InventoryDirectory(ILogger<InventoryDirectory> logger)
-    {
-        _logger = logger;
-    }
-
     public async Task<IReadOnlyList<FileInventoryResult>> InventoryADirectoryAsync(
         IReadOnlyList<string> directories,
         int maxConcurrency,
@@ -133,7 +125,7 @@ public class InventoryDirectory
                     }
                     catch (Exception e)
                     {
-                        _logger.LogError(e, $"Exception when reading the Metadata of the file {file}.");
+                        progress.Report($"Exception when reading the Metadata of the file {file}. Exception: {e}.");
                     }
                 }
 
