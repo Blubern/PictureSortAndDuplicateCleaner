@@ -13,7 +13,7 @@ variables:
   dockerRegistryServiceConnection: 'e33455e6-bcad-4af6-b26e-ee417e02c1d0'
   imageRepository: 'picsorter'
   containerRegistry: 'tobscontainer.azurecr.io'
-  dockerfilePath: '$(Build.SourcesDirectory)/src/Dockerfile'
+  dockerfilePath: '$(Build.SourcesDirectory)/src/PictureSort.Cmd/Dockerfile'
   tag: '$(Build.BuildId)'
   buildContext: '$(Build.Repository.LocalPath)'
 
