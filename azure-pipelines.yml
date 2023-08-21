@@ -15,6 +15,7 @@ variables:
   containerRegistry: 'tobscontainer.azurecr.io'
   dockerfilePath: '$(Build.SourcesDirectory)/src/Dockerfile'
   tag: '$(Build.BuildId)'
+  buildContext: '$(Build.Repository.LocalPath)'
 
   # Agent VM image name
   vmImageName: 'ubuntu-latest'
