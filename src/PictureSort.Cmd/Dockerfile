@@ -8,6 +8,6 @@ RUN dotnet publish "PictureSort.Cmd.csproj" -c Release -o /app/publish /p:UseApp
 
 FROM base AS final
 WORKDIR /app
-COPY --from=build . .
+COPY --from=build /app/publish .
 
 ENTRYPOINT ["dotnet", "PictureSort.Cmd.dll"]
