@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Globalization;
 using Microsoft.Extensions.DependencyInjection;
 using PictureSort;
 using PictureSort.Cmd;
@@ -44,6 +45,7 @@ if (string.IsNullOrWhiteSpace(pictureTarget))
 var maxConcurrency = Environment.GetEnvironmentVariable("MAX_CONCURRENCY") == null ? Environment.ProcessorCount : Convert.ToInt32(Environment.GetEnvironmentVariable("MAX_CONCURRENCY"));
 var duplicateFolderName = Environment.GetEnvironmentVariable("DUPLICATE_FOLDER_NAME") ?? "!Duplicate";
 var alreadyExistingFolderName = Environment.GetEnvironmentVariable("ALREADY_EXISTING_FOLDER_NAME") ?? "!ExistsInTarget";
+var cultureName = Environment.GetEnvironmentVariable("CULTURE_NAME") ?? "en-US";
 
 var serviceProvider = new ServiceCollection()
     .AddScoped<PictureSorter>()
@@ -57,6 +59,11 @@ Log.Debug("PICTURE_TARGET: {PictureSource}", pictureTarget);
 Log.Debug("MAX_CONCURRENCY: {PictureSource}", maxConcurrency);
 Log.Debug("DUPLICATE_FOLDER_NAME: {PictureSource}", duplicateFolderName);
 Log.Debug("ALREADY_EXISTING_FOLDER_NAME: {PictureSource}", alreadyExistingFolderName);
+Log.Debug("CULTURE_NAME: {CultureName}", cultureName);
+
+var cultureInfo = new CultureInfo(cultureName);
+Thread.CurrentThread.CurrentCulture = cultureInfo;
+Thread.CurrentThread.CurrentUICulture = cultureInfo;
 
 var pictureSorter = serviceProvider.GetRequiredService<PictureSorter>();
 var parameter = new PictureSortParameter(
