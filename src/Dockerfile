@@ -2,9 +2,9 @@
 WORKDIR /app
 
 FROM mcr.microsoft.com/dotnet/sdk:7.0 AS build
-WORKDIR /src
-COPY ["PictureSort.Cmd/PictureSort.Cmd.csproj", "PictureSort.Cmd/"]
-RUN dotnet restore "PictureSort.Cmd/PictureSort.Cmd.csproj"
+WORKDIR /
+COPY ["src/PictureSort.Cmd/PictureSort.Cmd.csproj", "src/PictureSort.Cmd/"]
+RUN dotnet restore "src/PictureSort.Cmd/PictureSort.Cmd.csproj"
 COPY . .
 WORKDIR "/src/PictureSort.Cmd"
 RUN dotnet build "PictureSort.Cmd.csproj" -c Release -o /app/build
