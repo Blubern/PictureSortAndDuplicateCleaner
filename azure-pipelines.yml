@@ -15,7 +15,6 @@ variables:
   containerRegistry: 'tobscontainer.azurecr.io'
   dockerfilePath: '$(Build.SourcesDirectory)/src/PictureSort.Cmd/Dockerfile'
   tag: '$(Build.BuildId)'
-  buildContext: '$(Build.Repository.LocalPath)'
 
   # Agent VM image name
   vmImageName: 'ubuntu-latest'
@@ -32,8 +31,11 @@ stages:
     - task: Docker@2
       displayName: Build and push an image to container registry
       inputs:
+        buildContext: '$(Build.Repository.LocalPath)'
         command: buildAndPush
         repository: $(imageRepository)
         dockerfile: $(dockerfilePath)
         containerRegistry: $(dockerRegistryServiceConnection)
-        tags: $(tag)
+        tags: |
+          $(tag)
+          latest
