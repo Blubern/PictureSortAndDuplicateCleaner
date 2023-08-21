@@ -1,15 +1,10 @@
 ﻿FROM mcr.microsoft.com/dotnet/runtime:7.0 AS base
 WORKDIR /app
 
-FROM mcr.microsoft.com/dotnet/sdk:7.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:7.0 AS publish
 WORKDIR /
-COPY ["/src/PictureSort.Cmd/PictureSort.Cmd.csproj", "/src/PictureSort.Cmd/"]
-RUN dotnet restore "/src/PictureSort.Cmd/PictureSort.Cmd.csproj"
 COPY . .
 WORKDIR "/src/PictureSort.Cmd"
-RUN dotnet build "PictureSort.Cmd.csproj" -c Release -o /app/build
-
-FROM build AS publish
 RUN dotnet publish "PictureSort.Cmd.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
 FROM base AS final
