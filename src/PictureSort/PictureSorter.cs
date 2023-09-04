@@ -19,13 +19,18 @@ public class PictureSorter
         
         progress.Report($"Starting the Picture sort process. With the following Parameter {pictureSortParameter}.");
 
-        progress.Report($"Making a inventor of the Source Directory.");
-        var sourceDirectoryInventoryOriginal = await _inventoryDirectory.InventoryADirectoryAsync(
-            pictureSortParameter.SourceDirectories,
-            pictureSortParameter.MaxConcurrency,
-            progress,
-            true,
-            cancellationToken);
+        IReadOnlyList<FileInventoryResult> sourceDirectoryInventoryOriginal = new List<FileInventoryResult>().AsReadOnly();
+        if (pictureSortParameter.InventoryOfTheTargetDirectory)
+        {
+            progress.Report($"Making a inventor of the Source Directory.");
+            sourceDirectoryInventoryOriginal = await _inventoryDirectory.InventoryADirectoryAsync(
+                pictureSortParameter.SourceDirectories,
+                pictureSortParameter.MaxConcurrency,
+                progress,
+                true,
+                cancellationToken);
+        }
+
 
         progress.Report($"Making a inventor of the Target Directory.");
         var targetDirectoryInventoryOriginal = await _inventoryDirectory.InventoryADirectoryAsync(

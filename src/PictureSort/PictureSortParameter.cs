@@ -2,18 +2,19 @@
 
 public class PictureSortParameter
 {
-    public PictureSortParameter(
-        IReadOnlyList<string> sourceDirectories,
+    public PictureSortParameter(IReadOnlyList<string> sourceDirectories,
         string targetDirectory,
         int maxConcurrency,
         string duplicateFolderName,
-        string alreadyExistingFolderName)
+        string alreadyExistingFolderName,
+        bool inventoryOfTheTargetDirectory)
     {
         SourceDirectories = sourceDirectories;
         TargetDirectory = targetDirectory;
         MaxConcurrency = maxConcurrency;
         DuplicateFolderName = duplicateFolderName;
         AlreadyExistingFolderName = alreadyExistingFolderName;
+        InventoryOfTheTargetDirectory = inventoryOfTheTargetDirectory;
         MoveDuplicateFilesInSourceDirectory = true;
         MoveDuplicateFilesInTargetDirectory = true;
 
@@ -49,6 +50,8 @@ public class PictureSortParameter
     public string DuplicateFolderName { get; }
     
     public string AlreadyExistingFolderName { get; }
+    
+    public bool InventoryOfTheTargetDirectory { get; }
 
     public override string ToString()
     {

@@ -18,4 +18,5 @@ COPY --from=publish /app/publish .
 ENV PICTURE_SOURCE "/volume1/photo/TobiasBackup"
 ENV PICTURE_TARGET "/volume1/photo/Tobias"
 ENV LOGGING_TARGET = "/volume1/photo/pictureSortLog.txt"
+ENV INVENTOR_OF_THE_TARGET_DIRECTORY = "True"
 ENTRYPOINT ["dotnet", "PictureSort.Cmd.dll"]

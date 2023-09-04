@@ -42,6 +42,13 @@ if (string.IsNullOrWhiteSpace(pictureTarget))
     return;
 }
 
+var envInventoryOfTheTargetDirectory = Environment.GetEnvironmentVariable("INVENTOR_OF_THE_TARGET_DIRECTORY") ?? bool.TrueString;
+if (!bool.TryParse(envInventoryOfTheTargetDirectory, out var inventoryOfTheTargetDirectory))
+{
+    Log.Error("You have to specify a valid value for INVENTOR_OF_THE_TARGET_DIRECTORY - Valid Values are: {TrueString}, {FalseString}. ", bool.TrueString, bool.FalseString);
+    return;
+}
+
 var maxConcurrency = Environment.GetEnvironmentVariable("MAX_CONCURRENCY") == null ? Environment.ProcessorCount : Convert.ToInt32(Environment.GetEnvironmentVariable("MAX_CONCURRENCY"));
 var duplicateFolderName = Environment.GetEnvironmentVariable("DUPLICATE_FOLDER_NAME") ?? "!Duplicate";
 var alreadyExistingFolderName = Environment.GetEnvironmentVariable("ALREADY_EXISTING_FOLDER_NAME") ?? "!ExistsInTarget";
@@ -60,6 +67,7 @@ Log.Debug("MAX_CONCURRENCY: {PictureSource}", maxConcurrency);
 Log.Debug("DUPLICATE_FOLDER_NAME: {PictureSource}", duplicateFolderName);
 Log.Debug("ALREADY_EXISTING_FOLDER_NAME: {PictureSource}", alreadyExistingFolderName);
 Log.Debug("CULTURE_NAME: {CultureName}", cultureName);
+Log.Debug("INVENTOR_OF_THE_TARGET_DIRECTORY: {BoolInventoryOfTheTarget}", inventoryOfTheTargetDirectory);
 
 var cultureInfo = new CultureInfo(cultureName);
 Thread.CurrentThread.CurrentCulture = cultureInfo;
@@ -71,7 +79,8 @@ var parameter = new PictureSortParameter(
     pictureTarget,
     maxConcurrency,
     duplicateFolderName,
-    alreadyExistingFolderName);
+    alreadyExistingFolderName,
+    inventoryOfTheTargetDirectory);
 
 try
 {
