@@ -19,26 +19,29 @@ public class PictureSorter
         
         progress.Report($"Starting the Picture sort process. With the following Parameter {pictureSortParameter}.");
 
-        IReadOnlyList<FileInventoryResult> sourceDirectoryInventoryOriginal = new List<FileInventoryResult>().AsReadOnly();
-        if (pictureSortParameter.InventoryOfTheTargetDirectory)
-        {
-            progress.Report($"Making a inventor of the Source Directory.");
-            sourceDirectoryInventoryOriginal = await _inventoryDirectory.InventoryADirectoryAsync(
-                pictureSortParameter.SourceDirectories,
-                pictureSortParameter.MaxConcurrency,
-                progress,
-                true,
-                cancellationToken);
-        }
-
-
-        progress.Report($"Making a inventor of the Target Directory.");
-        var targetDirectoryInventoryOriginal = await _inventoryDirectory.InventoryADirectoryAsync(
-            new [] { pictureSortParameter.TargetDirectory },
+        progress.Report($"Making a inventor of the Source Directory.");
+        var sourceDirectoryInventoryOriginal = await _inventoryDirectory.InventoryADirectoryAsync(
+            pictureSortParameter.SourceDirectories,
             pictureSortParameter.MaxConcurrency,
             progress,
-            false,
+            true,
             cancellationToken);
+
+        IReadOnlyList<FileInventoryResult> targetDirectoryInventoryOriginal = new List<FileInventoryResult>().AsReadOnly();
+        if (pictureSortParameter.InventoryOfTheTargetDirectory)
+        {
+            progress.Report($"Making a inventor of the Target Directory.");
+            targetDirectoryInventoryOriginal = await _inventoryDirectory.InventoryADirectoryAsync(
+                new[] {pictureSortParameter.TargetDirectory},
+                pictureSortParameter.MaxConcurrency,
+                progress,
+                false,
+                cancellationToken);
+        }
+        else
+        {
+            progress.Report("DISABLED: Making a inventor of the Target Directory.");
+        }
 
         await sourceDirectoryInventoryOriginal.CheckForDuplicateFilesAndMoveAsync(
             progress: progress,

@@ -67,7 +67,7 @@ Log.Debug("MAX_CONCURRENCY: {PictureSource}", maxConcurrency);
 Log.Debug("DUPLICATE_FOLDER_NAME: {PictureSource}", duplicateFolderName);
 Log.Debug("ALREADY_EXISTING_FOLDER_NAME: {PictureSource}", alreadyExistingFolderName);
 Log.Debug("CULTURE_NAME: {CultureName}", cultureName);
-Log.Debug("INVENTOR_OF_THE_TARGET_DIRECTORY: {BoolInventoryOfTheTarget}", inventoryOfTheTargetDirectory);
+Log.Debug("INVENTOR_OF_THE_TARGET_DIRECTORY: {InventoryOfTheTargetDirectory}", inventoryOfTheTargetDirectory);
 
 var cultureInfo = new CultureInfo(cultureName);
 Thread.CurrentThread.CurrentCulture = cultureInfo;

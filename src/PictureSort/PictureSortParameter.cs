@@ -55,6 +55,6 @@ public class PictureSortParameter
 
     public override string ToString()
     {
-        return $"{nameof(SourceDirectories)}: {SourceDirectories}, {nameof(TargetDirectory)}: {TargetDirectory}, {nameof(MaxConcurrency)}: {MaxConcurrency}, {nameof(MoveDuplicateFilesInSourceDirectory)}: {MoveDuplicateFilesInSourceDirectory}, {nameof(MoveDuplicateFilesInTargetDirectory)}: {MoveDuplicateFilesInTargetDirectory}, {nameof(DuplicateFolderName)}: {DuplicateFolderName}, {nameof(AlreadyExistingFolderName)}: {AlreadyExistingFolderName}";
+        return $"{nameof(SourceDirectories)}: {string.Join(",", SourceDirectories)}, {nameof(TargetDirectory)}: {TargetDirectory}, {nameof(MaxConcurrency)}: {MaxConcurrency}, {nameof(MoveDuplicateFilesInSourceDirectory)}: {MoveDuplicateFilesInSourceDirectory}, {nameof(MoveDuplicateFilesInTargetDirectory)}: {MoveDuplicateFilesInTargetDirectory}, {nameof(DuplicateFolderName)}: {DuplicateFolderName}, {nameof(AlreadyExistingFolderName)}: {AlreadyExistingFolderName}, {nameof(InventoryOfTheTargetDirectory)}: {InventoryOfTheTargetDirectory}";
     }
 }
