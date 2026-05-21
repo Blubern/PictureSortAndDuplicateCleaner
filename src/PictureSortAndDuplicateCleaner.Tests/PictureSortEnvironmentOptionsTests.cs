@@ -315,13 +315,13 @@ public sealed class PictureSortEnvironmentOptionsTests
         {
             [PictureSortEnvironmentOptions.PictureSourceVariable] = "C:/source",
             [PictureSortEnvironmentOptions.PictureTargetVariable] = "C:/target",
-            [PictureSortEnvironmentOptions.JournalFileVariable] = "  C:/logs/picsort.jsonl  "
+            [PictureSortEnvironmentOptions.JournalFileVariable] = "  C:/logs/picturesortandduplicatecleaner.jsonl  "
         };
 
         var success = PictureSortEnvironmentOptions.TryCreate(Lookup(environment), out var options, out _);
 
         Assert.True(success);
-        Assert.Equal("C:/logs/picsort.jsonl", options!.JournalFilePath);
+        Assert.Equal("C:/logs/picturesortandduplicatecleaner.jsonl", options!.JournalFilePath);
     }
 
     [Fact]

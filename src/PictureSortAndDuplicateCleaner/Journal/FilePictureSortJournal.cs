@@ -5,8 +5,8 @@ namespace PictureSortAndDuplicateCleaner.Journal;
 
 public sealed class FilePictureSortJournal : IPictureSortJournal
 {
-    public const string SchemaVersion = "picsort-journal/v1";
-    public const string DefaultFileName = "picsort-journal.jsonl";
+    public const string SchemaVersion = "picturesortandduplicatecleaner-journal/v1";
+    public const string DefaultFileName = "picturesortandduplicatecleaner-journal.jsonl";
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {

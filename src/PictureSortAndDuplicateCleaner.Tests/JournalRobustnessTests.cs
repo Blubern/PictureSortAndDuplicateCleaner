@@ -27,7 +27,7 @@ public sealed class JournalRobustnessTests
         var path = Path.Combine(dir.Path, "journal.jsonl");
         var lines = new[]
         {
-            "{\"schema\":\"picsort-journal/v1\"}",
+            "{\"schema\":\"picturesortandduplicatecleaner-journal/v1\"}",
             "{ this is not valid json",
             "{\"hash\":\"abc\",\"targetPath\":\"" + targetFile.Replace("\\", "\\\\") + "\",\"movedAtUtc\":\"2024-05-19T10:30:00Z\"}",
             "",
@@ -50,7 +50,7 @@ public sealed class JournalRobustnessTests
         var staleTarget = Path.Combine(dir.Path, "vanished.jpg").Replace("\\", "\\\\");
         var lines = new[]
         {
-            "{\"schema\":\"picsort-journal/v1\"}",
+            "{\"schema\":\"picturesortandduplicatecleaner-journal/v1\"}",
             "{\"hash\":\"stale1\",\"targetPath\":\"" + staleTarget + "\",\"movedAtUtc\":\"2024-05-19T10:30:00Z\"}",
             "{\"hash\":\"stale2\",\"targetPath\":\"" + staleTarget + "\",\"movedAtUtc\":\"2024-05-19T10:30:01Z\"}",
         };
@@ -72,7 +72,7 @@ public sealed class JournalRobustnessTests
         var path = Path.Combine(dir.Path, "journal.jsonl");
         File.WriteAllLines(path, new[]
         {
-            "{\"schema\":\"picsort-journal/v1\"}",
+            "{\"schema\":\"picturesortandduplicatecleaner-journal/v1\"}",
             "{\"hash\":\"only\",\"targetPath\":\"" + targetFile + "\",\"movedAtUtc\":\"2024-05-19T10:30:00Z\"}",
         });
 

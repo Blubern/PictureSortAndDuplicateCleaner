@@ -4,7 +4,7 @@ namespace PictureSortAndDuplicateCleaner.Abstractions;
 
 /// <summary>
 /// Default content hasher: hashes the raw file bytes with XxHash3 and returns
-/// the lower-case hex string. This is the historical PicSorter behavior.
+/// the lower-case hex string. This is the historical PictureSortAndDuplicateCleaner behavior.
 /// </summary>
 public sealed class FileBytesContentHasher : IContentHasher
 {

@@ -22,10 +22,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6.0.2
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5.2.0
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
@@ -48,27 +48,27 @@ jobs:
       matrix:
         include:
           - rid: win-x64
-            asset_name: picsorter-${{ github.ref_name }}-win-x64.zip
+            asset_name: picturesortandduplicatecleaner-${{ github.ref_name }}-win-x64.zip
             app_file: PictureSortAndDuplicateCleaner.Cmd.exe
-            app_target: picsorter.exe
+            app_target: picturesortandduplicatecleaner.exe
             archive: zip
           - rid: linux-x64
-            asset_name: picsorter-${{ github.ref_name }}-linux-x64.tar.gz
+            asset_name: picturesortandduplicatecleaner-${{ github.ref_name }}-linux-x64.tar.gz
             app_file: PictureSortAndDuplicateCleaner.Cmd
-            app_target: picsorter
+            app_target: picturesortandduplicatecleaner
             archive: tar.gz
           - rid: osx-arm64
-            asset_name: picsorter-${{ github.ref_name }}-osx-arm64.tar.gz
+            asset_name: picturesortandduplicatecleaner-${{ github.ref_name }}-osx-arm64.tar.gz
             app_file: PictureSortAndDuplicateCleaner.Cmd
-            app_target: picsorter
+            app_target: picturesortandduplicatecleaner
             archive: tar.gz
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6.0.2
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5.2.0
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
@@ -111,7 +111,7 @@ jobs:
           }
 
       - name: Upload release asset
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: release-assets-${{ matrix.rid }}
           path: artifacts/${{ matrix.asset_name }}
@@ -124,16 +124,16 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6.0.2
 
       - name: Setup QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4.0.0
 
       - name: Setup Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4.0.0
 
       - name: Login to GHCR
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4.1.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -141,7 +141,7 @@ jobs:
 
       - name: Docker metadata
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6.0.0
         with:
           images: ${{ env.IMAGE_NAME }}
           tags: |
@@ -150,12 +150,12 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=raw,value=latest,enable=${{ !contains(github.ref_name, '-') }}
           labels: |
-            org.opencontainers.image.title=PicSorter
+            org.opencontainers.image.title=PictureSortAndDuplicateCleaner
             org.opencontainers.image.description=Sort photos and detect duplicates from mounted folders.
             org.opencontainers.image.source=https://github.com/Blubern/PictureSortAndDuplicateCleaner
 
       - name: Build and push
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7.2.0
         with:
           context: .
           file: src/PictureSortAndDuplicateCleaner.Cmd/Dockerfile
@@ -173,7 +173,7 @@ jobs:
 
     steps:
       - name: Download release assets
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8.0.1
         with:
           pattern: release-assets-*
           path: release-assets
@@ -191,10 +191,10 @@ jobs:
             } | Set-Content -Path release-assets/SHA256SUMS.txt -Encoding ascii
 
       - name: Publish GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3.0.0
         with:
           tag_name: ${{ github.ref_name }}
-          name: PicSorter ${{ github.ref_name }}
+          name: PictureSortAndDuplicateCleaner ${{ github.ref_name }}
           generate_release_notes: true
           make_latest: true
           files: |

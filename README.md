@@ -1,6 +1,6 @@
-# PicSorter
+# PictureSortAndDuplicateCleaner
 
-PicSorter helps clean up large photo import folders, phone backups, camera dumps,
+PictureSortAndDuplicateCleaner helps clean up large photo import folders, phone backups, camera dumps,
 and mixed image archives. It inventories image files, detects duplicates by a
 fast XxHash3 content fingerprint (byte-wise by default, optionally on decoded
 pixels via `HASH_MODE=pixel`), keeps matching sidecar files together, and
@@ -18,7 +18,7 @@ The taken date is derived in this order:
 3. File `CreationTime`
 4. Otherwise the file is placed into an `Unknown` folder
 
-> **Warning:** PicSorter **moves** files by default. `OPERATION_MODE=copy` is
+> **Warning:** PictureSortAndDuplicateCleaner **moves** files by default. `OPERATION_MODE=copy` is
 > available when you want the source to remain untouched. Always run a backup
 > before pointing the default move mode at irreplaceable data.
 
@@ -49,9 +49,9 @@ the same environment variables documented below.
 
 Release assets are named by version and runtime:
 
-- `picsorter-vX.Y.Z-win-x64.zip` for Windows x64
-- `picsorter-vX.Y.Z-linux-x64.tar.gz` for Linux x64
-- `picsorter-vX.Y.Z-osx-arm64.tar.gz` for macOS ARM64 / Apple Silicon
+- `picturesortandduplicatecleaner-vX.Y.Z-win-x64.zip` for Windows x64
+- `picturesortandduplicatecleaner-vX.Y.Z-linux-x64.tar.gz` for Linux x64
+- `picturesortandduplicatecleaner-vX.Y.Z-osx-arm64.tar.gz` for macOS ARM64 / Apple Silicon
 - `SHA256SUMS.txt` for verifying downloaded artifacts
 
 The macOS ARM64 binary is not signed or notarized. Depending on local Gatekeeper
@@ -70,7 +70,7 @@ settings, the first launch may need explicit approval in macOS security settings
 | `CULTURE_NAME`                      | no       | `en-US`                  | Culture used for folder names like `MMMM` (month).                                           |
 | `LOGGING_TARGET`                    | no       | `pictureSortLogging.txt` | Rolling Serilog file sink.                                                                   |
 | `SIDECAR_EXTENSIONS`                | no       | _empty (feature off)_    | Opt-in. Semicolon-separated list of sidecar extensions (e.g. `.xmp;.aae;.json`) that should follow their matching primary image when it is moved. Leading dot optional, case-insensitive. |
-| `JOURNAL_FILE`                      | no       | _empty (feature off)_    | Opt-in. Path to an append-only JSONL journal of moved files. May be a file path or an existing directory; in the latter case the file `picsort-journal.jsonl` is used. When set, hashes from previous runs are treated as "already in target" even without `INVENTOR_OF_THE_TARGET_DIRECTORY=true`. |
+| `JOURNAL_FILE`                      | no       | _empty (feature off)_    | Opt-in. Path to an append-only JSONL journal of moved files. May be a file path or an existing directory; in the latter case the file `picturesortandduplicatecleaner-journal.jsonl` is used. When set, hashes from previous runs are treated as "already in target" even without `INVENTOR_OF_THE_TARGET_DIRECTORY=true`. |
 | `FOLDER_TEMPLATE`                   | no       | `{yyyy}/{MMMM}/{dd}`     | Token-based template for the per-file target subfolder below `PICTURE_TARGET`. Use `/` or `\` as separators. Unknown tokens or path-traversal segments (`..`) reject startup. See _Folder Template_ below. |
 | `UNKNOWN_DATE_POLICY`               | no       | `move`                   | How to handle files without an EXIF date. `move` (default, legacy): drop them into the `Unknown/` folder using filesystem-timestamp fallbacks. `skip`: leave them in source and count under `FilesWithoutDateSkipped`. `fail`: leave them in source and count as errors. |
 | `DRY_RUN`                           | no       | `false`                  | If `true`, no files are written, moved, copied, or deleted. The sorter still inventories, hashes, and reports every action it _would_ take. Useful for previewing changes before committing. |
@@ -128,14 +128,14 @@ docker run --rm `
 To build the image locally instead:
 
 ```powershell
-docker build -t picsorter -f src/PictureSortAndDuplicateCleaner.Cmd/Dockerfile .
+docker build -t picturesortandduplicatecleaner -f src/PictureSortAndDuplicateCleaner.Cmd/Dockerfile .
 
 docker run --rm `
   -e PICTURE_SOURCE=/data/source `
   -e PICTURE_TARGET=/data/target `
   -v D:\Photos\Inbox:/data/source `
   -v D:\Photos\Library:/data/target `
-  picsorter
+  picturesortandduplicatecleaner
 ```
 
 For hardened unattended deployments, prefer mounting an explicit writable log
@@ -162,7 +162,7 @@ source and write the target folders.
 
 ## Sidecar Files (opt-in)
 
-When `SIDECAR_EXTENSIONS` is set, PicSorter recognises companion files that
+When `SIDECAR_EXTENSIONS` is set, PictureSortAndDuplicateCleaner recognises companion files that
 belong to a primary image and moves them together with their primary into the
 same target folder. A sidecar is matched to a primary in the same directory by
 file name. Both common naming conventions are supported:
@@ -185,7 +185,7 @@ Behavior:
 
 ## Journal (opt-in)
 
-When `JOURNAL_FILE` is set, PicSorter writes an append-only JSONL journal of
+When `JOURNAL_FILE` is set, PictureSortAndDuplicateCleaner writes an append-only JSONL journal of
 every primary file that was moved into the target during a run. The journal
 serves two purposes:
 
@@ -200,7 +200,7 @@ serves two purposes:
 File format:
 
 ```
-{"schema":"picsort-journal/v1"}
+{"schema":"picturesortandduplicatecleaner-journal/v1"}
 {"hash":"...","targetPath":"D:/Library/2024/May/19/IMG_0001.jpg","movedAtUtc":"2024-05-19T08:30:00Z"}
 ...
 ```
@@ -217,13 +217,13 @@ Behavior:
 
 ## Hashing Modes
 
-PicSorter offers two duplicate fingerprinting strategies, selected via
+PictureSortAndDuplicateCleaner offers two duplicate fingerprinting strategies, selected via
 `HASH_MODE`. Both use XxHash3 underneath for speed.
 
 ### `HASH_MODE=file` (default)
 
 Hashes the raw bytes of each file. Two files are duplicates only when their
-bytes are identical. This is the historical PicSorter behavior and is the
+bytes are identical. This is the historical PictureSortAndDuplicateCleaner behavior and is the
 right choice when you trust that "same content" means "same bytes".
 
 - Fastest mode — no decoding work.
@@ -241,7 +241,7 @@ compression, or different lossless container hash to the **same** value.
 - Supported decoders: JPEG, PNG, GIF, BMP, WebP, ICO, WBMP (whatever SkiaSharp
   ships with on the host).
 - **Per-file automatic fallback**: when a file cannot be decoded (HEIC, RAW,
-  non-image, corrupt) PicSorter logs a warning and uses the file-bytes hash
+  non-image, corrupt) PictureSortAndDuplicateCleaner logs a warning and uses the file-bytes hash
   for that file. The run does not abort.
 - Pixel-mode hashes are tagged with the prefix `p:` so they cannot collide
   with file-mode hashes in the journal or duplicate index.

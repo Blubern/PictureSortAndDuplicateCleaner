@@ -1,7 +1,7 @@
 namespace PictureSortAndDuplicateCleaner;
 
 /// <summary>
-/// Selects how PicSorter fingerprints a file for duplicate detection.
+/// Selects how PictureSortAndDuplicateCleaner fingerprints a file for duplicate detection.
 /// </summary>
 public enum HashMode
 {

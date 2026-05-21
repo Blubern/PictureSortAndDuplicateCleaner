@@ -5,7 +5,7 @@ namespace PictureSortAndDuplicateCleaner.Tests;
 /// <summary>
 /// In-process tests that invoke the Cmd Program's compiler-generated entry point via
 /// reflection so the top-level statements participate in coverage. Each test sets the
-/// required PICSORT environment variables, calls Main, and inspects the returned exit code.
+/// required PictureSortAndDuplicateCleaner environment variables, calls Main, and inspects the returned exit code.
 /// </summary>
 [Collection("ProgramEntryPoint")] // serialize because Program mutates global state (Log.Logger, env vars, culture)
 public sealed class ProgramEndToEndTests
@@ -26,9 +26,9 @@ public sealed class ProgramEndToEndTests
     public async Task Program_WithMissingDirectories_ReturnsInvalidConfigurationExitCode()
     {
         using var scope = new EnvironmentVariableScope();
-        scope.Set("PICTURE_SOURCE", Path.Combine(Path.GetTempPath(), "picsort-missing-" + Guid.NewGuid().ToString("N")));
-        scope.Set("PICTURE_TARGET", Path.Combine(Path.GetTempPath(), "picsort-missing-" + Guid.NewGuid().ToString("N")));
-        scope.Set("LOGGING_TARGET", Path.Combine(Path.GetTempPath(), "picsort-test-" + Guid.NewGuid().ToString("N") + ".log"));
+        scope.Set("PICTURE_SOURCE", Path.Combine(Path.GetTempPath(), "picturesortandduplicatecleaner-missing-" + Guid.NewGuid().ToString("N")));
+        scope.Set("PICTURE_TARGET", Path.Combine(Path.GetTempPath(), "picturesortandduplicatecleaner-missing-" + Guid.NewGuid().ToString("N")));
+        scope.Set("LOGGING_TARGET", Path.Combine(Path.GetTempPath(), "picturesortandduplicatecleaner-test-" + Guid.NewGuid().ToString("N") + ".log"));
 
         var exitCode = await InvokeProgramMainAsync();
 
@@ -38,9 +38,9 @@ public sealed class ProgramEndToEndTests
     [Fact]
     public async Task Program_WithValidEmptyDirectories_ReturnsSuccessExitCode()
     {
-        var source = Path.Combine(Path.GetTempPath(), "picsort-e2e-src-" + Guid.NewGuid().ToString("N"));
-        var target = Path.Combine(Path.GetTempPath(), "picsort-e2e-tgt-" + Guid.NewGuid().ToString("N"));
-        var loggingTarget = Path.Combine(Path.GetTempPath(), "picsort-e2e-log-" + Guid.NewGuid().ToString("N") + ".log");
+        var source = Path.Combine(Path.GetTempPath(), "picturesortandduplicatecleaner-e2e-src-" + Guid.NewGuid().ToString("N"));
+        var target = Path.Combine(Path.GetTempPath(), "picturesortandduplicatecleaner-e2e-tgt-" + Guid.NewGuid().ToString("N"));
+        var loggingTarget = Path.Combine(Path.GetTempPath(), "picturesortandduplicatecleaner-e2e-log-" + Guid.NewGuid().ToString("N") + ".log");
         Directory.CreateDirectory(source);
         Directory.CreateDirectory(target);
         try
