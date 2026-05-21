@@ -1,0 +1,15 @@
+**/.env
+**/.git
+**/.gitignore
+**/.vs
+**/.vscode
+**/.idea
+**/*.*proj.user
+**/bin
+**/obj
+**/node_modules
+**/npm-debug.log
+**/Dockerfile*
+**/docker-compose*
+**/secrets.dev.yaml
+**/values.dev.yaml

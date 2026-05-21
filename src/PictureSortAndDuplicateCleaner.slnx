@@ -1,0 +1,14 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/Docker/">
+    <File Path=".dockerignore" />
+    <File Path="PictureSortAndDuplicateCleaner.Cmd/Dockerfile" />
+  </Folder>
+  <Project Path="PictureSortAndDuplicateCleaner.Cmd/PictureSortAndDuplicateCleaner.Cmd.csproj" />
+  <Project Path="PictureSortAndDuplicateCleaner.Tests/PictureSortAndDuplicateCleaner.Tests.csproj" />
+  <Project Path="PictureSortAndDuplicateCleaner/PictureSortAndDuplicateCleaner.csproj" />
+</Solution>
