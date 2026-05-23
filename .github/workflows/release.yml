@@ -116,6 +116,7 @@ jobs:
           name: release-assets-${{ matrix.rid }}
           path: artifacts/${{ matrix.asset_name }}
           if-no-files-found: error
+          retention-days: 1
 
   docker-image:
     name: Docker image
@@ -156,6 +157,9 @@ jobs:
 
       - name: Build and push
         uses: docker/build-push-action@v7.2.0
+        env:
+          DOCKER_BUILD_SUMMARY: false
+          DOCKER_BUILD_RECORD_UPLOAD: false
         with:
           context: .
           file: src/PictureSortAndDuplicateCleaner.Cmd/Dockerfile
@@ -201,3 +205,36 @@ jobs:
             release-assets/*.zip
             release-assets/*.tar.gz
             release-assets/SHA256SUMS.txt
+
+  cleanup:
+    name: Cleanup workflow artifacts
+    needs: [github-release]
+    if: success()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: write
+    steps:
+      - name: Delete this run's workflow artifacts
+        uses: actions/github-script@v9
+        with:
+          script: |
+            // After a successful release the assets live on the GitHub Release
+            // page and the image lives in GHCR -- workflow artifacts are pure
+            // transport between jobs and can be discarded.
+            const runId = context.runId;
+            const artifacts = await github.paginate(
+              github.rest.actions.listWorkflowRunArtifacts,
+              { owner: context.repo.owner, repo: context.repo.repo, run_id: runId, per_page: 100 }
+            );
+            let deleted = 0;
+            for (const a of artifacts) {
+              console.log(`Deleting ${a.name} (id: ${a.id}, size: ${a.size_in_bytes})`);
+              await github.rest.actions.deleteArtifact({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                artifact_id: a.id
+              });
+              deleted++;
+            }
+            console.log(`Deleted ${deleted} artifact(s) from run ${runId}.`);
