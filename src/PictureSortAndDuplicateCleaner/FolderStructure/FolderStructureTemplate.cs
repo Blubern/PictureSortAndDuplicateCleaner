@@ -156,7 +156,7 @@ public sealed class FolderStructureTemplate
             }
             else
             {
-                if (Path.GetInvalidFileNameChars().Contains(ch))
+                if (FileNameSegmentValidator.IsInvalidPortableFileNameChar(ch))
                 {
                     throw new ArgumentException(
                         $"Folder template contains the invalid path character '{ch}' at position {segmentStart + i}.",

@@ -118,7 +118,7 @@ public static class PictureSortParameterValidator
             throw new ArgumentException($"{propertyName} must be a single folder segment without path separators: '{folderName}'.", nameof(folderName));
         }
 
-        if (folderName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
+        if (FileNameSegmentValidator.IndexOfInvalidPortableFileNameChar(folderName) >= 0)
         {
             throw new ArgumentException($"{propertyName} contains invalid filename characters: '{folderName}'.", nameof(folderName));
         }

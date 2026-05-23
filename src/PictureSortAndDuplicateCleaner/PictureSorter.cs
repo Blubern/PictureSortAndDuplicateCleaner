@@ -395,61 +395,63 @@ public class PictureSorter
             CancellationToken = cancellationToken
         };
 
-        await Parallel.ForEachAsync(sourceList, parallelOptions, (fileInventoryResult, _) =>
+        await Parallel.ForEachAsync(sourceList, parallelOptions, async (fileInventoryResult, ct) =>
         {
-            try
+            await Task.Run(() =>
             {
-                var current = Interlocked.Increment(ref processedCount);
-                // "Strict" Unknown handling: when the user opts in to SkipAndCount/Fail we treat a
-                // missing EXIF date as "no date" even if filesystem timestamps would otherwise be a
-                // fallback. The default MoveToUnknownFolder policy keeps legacy semantics.
-                var hasReliableDate = fileInventoryResult.OriginalDate.HasValue;
-                if (!hasReliableDate && unknownDatePolicy != UnknownDatePolicy.MoveToUnknownFolder)
+                try
                 {
-                    _events.Report(new FileWithoutDateEvent(fileInventoryResult.FullPath, unknownDatePolicy));
-                    if (unknownDatePolicy == UnknownDatePolicy.SkipAndCount)
+                    var current = Interlocked.Increment(ref processedCount);
+                    // "Strict" Unknown handling: when the user opts in to SkipAndCount/Fail we treat a
+                    // missing EXIF date as "no date" even if filesystem timestamps would otherwise be a
+                    // fallback. The default MoveToUnknownFolder policy keeps legacy semantics.
+                    var hasReliableDate = fileInventoryResult.OriginalDate.HasValue;
+                    if (!hasReliableDate && unknownDatePolicy != UnknownDatePolicy.MoveToUnknownFolder)
                     {
-                        Interlocked.Increment(ref filesWithoutDateSkipped);
-                        progress.Report($"({current}/{sourceList.Count}) - Skipped file without date (UnknownDatePolicy=SkipAndCount): {fileInventoryResult.FullPath}.");
+                        _events.Report(new FileWithoutDateEvent(fileInventoryResult.FullPath, unknownDatePolicy));
+                        if (unknownDatePolicy == UnknownDatePolicy.SkipAndCount)
+                        {
+                            Interlocked.Increment(ref filesWithoutDateSkipped);
+                            progress.Report($"({current}/{sourceList.Count}) - Skipped file without date (UnknownDatePolicy=SkipAndCount): {fileInventoryResult.FullPath}.");
+                        }
+                        else // Fail
+                        {
+                            Interlocked.Increment(ref errorCount);
+                            progress.Report($"({current}/{sourceList.Count}) - Failed file without date (UnknownDatePolicy=Fail): {fileInventoryResult.FullPath}.");
+                            _events.Report(new FileFailedEvent(fileInventoryResult.FullPath, "NoDate", "UnknownDatePolicy=Fail"));
+                            _errors.Add(new PictureSortError(fileInventoryResult.FullPath, "NoDate", "UnknownDatePolicy=Fail"));
+                        }
+                        return;
                     }
-                    else // Fail
+
+                    var targetFullDirectoryPath = Path.Combine(targetFolder, folderTemplate.Build(fileInventoryResult));
+                    var sidecars = sidecarMatcher.Find(fileInventoryResult);
+                    var moveResult = MoveFileAndSidecars(
+                        fileInventoryResult.FullPath,
+                        targetFullDirectoryPath,
+                        fileInventoryResult.OriginalFileName,
+                        sidecars,
+                        progress,
+                        $"({current}/{sourceList.Count}) - {(dryRun ? "[DRY-RUN] " : string.Empty)}{(operationMode == OperationMode.Copy ? "Copied" : "Moved")} file to the target directory",
+                        dryRun: dryRun,
+                        useCopy: operationMode == OperationMode.Copy);
+                    Interlocked.Add(ref sidecarsMoved, moveResult.SidecarsMoved);
+                    Interlocked.Add(ref errorCount, moveResult.SidecarErrors);
+                    if (!dryRun)
                     {
-                        Interlocked.Increment(ref errorCount);
-                        progress.Report($"({current}/{sourceList.Count}) - Failed file without date (UnknownDatePolicy=Fail): {fileInventoryResult.FullPath}.");
-                        _events.Report(new FileFailedEvent(fileInventoryResult.FullPath, "NoDate", "UnknownDatePolicy=Fail"));
-                        _errors.Add(new PictureSortError(fileInventoryResult.FullPath, "NoDate", "UnknownDatePolicy=Fail"));
+                        journal.Append(new JournalEntry(fileInventoryResult.Hash, moveResult.PrimaryFinalPath, _clock.UtcNow));
+                        _events.Report(new JournalAppendedEvent(fileInventoryResult.Hash, moveResult.PrimaryFinalPath));
                     }
-                    return ValueTask.CompletedTask;
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    Interlocked.Increment(ref errorCount);
+                    progress.Report($"Failed to move file {fileInventoryResult.FullPath}: {ex.Message}.");
+                    _events.Report(new FileFailedEvent(fileInventoryResult.FullPath, "MoveFailed", ex.Message));
+                    _errors.Add(new PictureSortError(fileInventoryResult.FullPath, "MoveFailed", ex.Message));
                 }
 
-                var targetFullDirectoryPath = Path.Combine(targetFolder, folderTemplate.Build(fileInventoryResult));
-                var sidecars = sidecarMatcher.Find(fileInventoryResult);
-                var moveResult = MoveFileAndSidecars(
-                    fileInventoryResult.FullPath,
-                    targetFullDirectoryPath,
-                    fileInventoryResult.OriginalFileName,
-                    sidecars,
-                    progress,
-                    $"({current}/{sourceList.Count}) - {(dryRun ? "[DRY-RUN] " : string.Empty)}{(operationMode == OperationMode.Copy ? "Copied" : "Moved")} file to the target directory",
-                    dryRun: dryRun,
-                    useCopy: operationMode == OperationMode.Copy);
-                Interlocked.Add(ref sidecarsMoved, moveResult.SidecarsMoved);
-                Interlocked.Add(ref errorCount, moveResult.SidecarErrors);
-                if (!dryRun)
-                {
-                    journal.Append(new JournalEntry(fileInventoryResult.Hash, moveResult.PrimaryFinalPath, _clock.UtcNow));
-                    _events.Report(new JournalAppendedEvent(fileInventoryResult.Hash, moveResult.PrimaryFinalPath));
-                }
-            }
-            catch (Exception ex) when (ex is not OperationCanceledException)
-            {
-                Interlocked.Increment(ref errorCount);
-                progress.Report($"Failed to move file {fileInventoryResult.FullPath}: {ex.Message}.");
-                _events.Report(new FileFailedEvent(fileInventoryResult.FullPath, "MoveFailed", ex.Message));
-                _errors.Add(new PictureSortError(fileInventoryResult.FullPath, "MoveFailed", ex.Message));
-            }
-
-            return ValueTask.CompletedTask;
+            }, ct);
         });
 
         return (errorCount, sidecarsMoved, filesWithoutDateSkipped);

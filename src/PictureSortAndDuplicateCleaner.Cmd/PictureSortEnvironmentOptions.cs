@@ -125,11 +125,7 @@ public sealed class PictureSortEnvironmentOptions
         }
 
         var cultureName = ValueOrDefault(getEnvironmentVariable(CultureNameVariable), DefaultCultureName);
-        try
-        {
-            _ = CultureInfo.GetCultureInfo(cultureName);
-        }
-        catch (CultureNotFoundException)
+        if (!CultureInfo.GetCultures(CultureTypes.AllCultures).Any(c => string.Equals(c.Name, cultureName, StringComparison.OrdinalIgnoreCase)))
         {
             errorMessage = $"Environment variable {CultureNameVariable} must be a valid culture name (got '{cultureName}').";
             return false;

@@ -21,6 +21,7 @@ public sealed class PictureSortParameterFolderNameValidationTests
     [InlineData("..\\escape")]
     [InlineData("nested/path")]
     [InlineData("nested\\path")]
+    [InlineData("bad<name")]
     [InlineData("")]
     [InlineData("   ")]
     public void Validate_RejectsBadDuplicateFolderName(string bad)
@@ -38,6 +39,7 @@ public sealed class PictureSortParameterFolderNameValidationTests
     [InlineData("..")]
     [InlineData("../escape")]
     [InlineData("dir/sub")]
+    [InlineData("dir?sub")]
     public void Validate_RejectsBadAlreadyExistingFolderName(string bad)
     {
         var fs = new InMemoryFileSystem();
