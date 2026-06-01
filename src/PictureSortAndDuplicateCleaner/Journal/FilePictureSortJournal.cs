@@ -53,6 +53,8 @@ public sealed class FilePictureSortJournal : IPictureSortJournal
         }
         _loaded = true;
 
+        EnsureFileInitialized();
+
         if (!_fileSystem.FileExists(_filePath))
         {
             return;
