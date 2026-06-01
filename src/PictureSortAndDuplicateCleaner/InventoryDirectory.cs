@@ -4,6 +4,7 @@ using MetadataExtractor;
 using MetadataExtractor.Formats.Exif;
 using PictureSortAndDuplicateCleaner.Abstractions;
 using PictureSortAndDuplicateCleaner.Exif;
+using PictureSortAndDuplicateCleaner.Journal;
 using PictureSortAndDuplicateCleaner.Sidecars;
 
 namespace PictureSortAndDuplicateCleaner;
@@ -52,6 +53,23 @@ public class InventoryDirectory
         IProgress<string> progress,
         bool addExifAndFileInformation,
         IReadOnlyList<string> sidecarExtensions,
+        CancellationToken cancellationToken)
+        => await InventoryADirectoryAsync(
+            directories,
+            maxConcurrency,
+            progress,
+            addExifAndFileInformation,
+            sidecarExtensions,
+            hashCache: null,
+            cancellationToken);
+
+    public async Task<InventoryResult> InventoryADirectoryAsync(
+        IReadOnlyList<string> directories,
+        int maxConcurrency,
+        IProgress<string> progress,
+        bool addExifAndFileInformation,
+        IReadOnlyList<string> sidecarExtensions,
+        IPictureSortJournal? hashCache,
         CancellationToken cancellationToken)
     {
         var files = new List<FileInventoryResult>();
@@ -111,7 +129,7 @@ public class InventoryDirectory
 
             await Parallel.ForEachAsync(primaryFiles, parallelOptions, async (file, ct) =>
             {
-                var item = await CreateFileInventoryResultAsync(file, directory, addExifAndFileInformation, progress, ct);
+                var item = await CreateFileInventoryResultAsync(file, directory, addExifAndFileInformation, progress, hashCache, ct);
                 bag.Add(item);
                 var current = Interlocked.Increment(ref processedCount);
                 progress.Report($"File {current}/{primaryFiles.Count} - Checked {item}.");
@@ -128,11 +146,11 @@ public class InventoryDirectory
         string directory,
         bool addExifAndFileInformation,
         IProgress<string> progress,
+        IPictureSortJournal? hashCache,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var hash = await GetFileHashAsync(file, cancellationToken);
         var originalFileName = Path.GetFileName(file);
         long length = 0;
         try
@@ -144,13 +162,26 @@ public class InventoryDirectory
             progress.Report($"Could not read file length for {file}: {e.Message}.");
         }
 
+        var lastWriteTime = _fileSystem.GetLastWriteTime(file);
+
+        string hash;
+        if (hashCache is not null && hashCache.TryGetCachedHash(file, length, lastWriteTime, out var cachedHash))
+        {
+            hash = cachedHash;
+            progress.Report($"Reused cached hash for {file} (size+mtime unchanged) — skipped hashing.");
+        }
+        else
+        {
+            hash = await GetFileHashAsync(file, cancellationToken);
+            hashCache?.RecordInventory(file, hash, length, lastWriteTime);
+        }
+
         if (!addExifAndFileInformation)
         {
             return new FileInventoryResult(file, directory, hash, originalFileName, length);
         }
 
         var creationTime = _fileSystem.GetCreationTime(file);
-        var lastWriteTime = _fileSystem.GetLastWriteTime(file);
         var lastAccessTime = _fileSystem.GetLastAccessTime(file);
         string? originalDateAsString = null;
         DateTime? originalDate = null;

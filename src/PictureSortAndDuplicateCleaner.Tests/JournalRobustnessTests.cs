@@ -5,7 +5,7 @@ namespace PictureSortAndDuplicateCleaner.Tests;
 public sealed class JournalRobustnessTests
 {
     [Fact]
-    public void Load_OnMissingFile_CreatesSchemaHeaderAndReportsZero()
+    public void Load_OnMissingFile_DoesNotCreateFile_AndReportsZero()
     {
         using var dir = new TemporaryDirectory();
         var path = Path.Combine(dir.Path, "does-not-exist.jsonl");
@@ -16,8 +16,9 @@ public sealed class JournalRobustnessTests
         Assert.Equal(0, journal.EntriesLoaded);
         Assert.Equal(0, journal.EntriesStale);
         Assert.Empty(journal.KnownHashes);
-        Assert.True(File.Exists(path), "Load should initialize the journal file when the journal is enabled.");
-        Assert.Contains("\"schema\"", File.ReadAllLines(path)[0]);
+        // Loading must stay write-free so a dry run never touches disk; the header is
+        // written lazily on the first Append/Compact instead.
+        Assert.False(File.Exists(path), "Load should not create the journal file (dry-run must remain write-free).");
     }
 
     [Fact]

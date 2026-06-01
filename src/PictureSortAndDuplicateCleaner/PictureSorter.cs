@@ -96,6 +96,7 @@ public class PictureSorter
                 progress,
                 false,
                 Array.Empty<string>(),
+                journal,
                 cancellationToken);
             _events.Report(new InventoryCompletedEvent(pictureSortParameter.TargetDirectory, targetInventory.Files.Count, targetInventory.Sidecars.Count));
         }
@@ -204,6 +205,17 @@ public class PictureSorter
         else
         {
             progress.Report($"SKIPPED empty-source-directory cleanup (DryRun={pictureSortParameter.DryRun}, OperationMode={pictureSortParameter.OperationMode}).");
+        }
+
+        // The journal doubles as a hash cache for the target inventory. Only compact when a full
+        // target inventory ran this turn; otherwise unseen-but-valid cache entries would be pruned.
+        if (pictureSortParameter.InventoryOfTheTargetDirectory
+            && !pictureSortParameter.DryRun
+            && !ReferenceEquals(journal, NullPictureSortJournal.Instance))
+        {
+            var compaction = journal.Compact();
+            progress.Report($"Journal compacted: kept {compaction.Kept} entries, pruned {compaction.Removed}.");
+            _events.Report(new JournalCompactedEvent(compaction.Kept, compaction.Removed));
         }
 
         var sourceFilesIgnored = sourceFiles.Count(a => a.IsIgnored);
@@ -460,7 +472,18 @@ public class PictureSorter
                     Interlocked.Add(ref errorCount, moveResult.SidecarErrors);
                     if (!dryRun)
                     {
-                        journal.Append(new JournalEntry(fileInventoryResult.Hash, moveResult.PrimaryFinalPath, _clock.UtcNow));
+                        long finalLength = 0;
+                        var finalLastWriteUtc = default(DateTime);
+                        try
+                        {
+                            finalLength = _fileSystem.GetFileLength(moveResult.PrimaryFinalPath);
+                            finalLastWriteUtc = _fileSystem.GetLastWriteTime(moveResult.PrimaryFinalPath);
+                        }
+                        catch (Exception statEx)
+                        {
+                            progress.Report($"Could not stat moved file {moveResult.PrimaryFinalPath} for journal: {statEx.Message}.");
+                        }
+                        journal.Append(new JournalEntry(fileInventoryResult.Hash, moveResult.PrimaryFinalPath, _clock.UtcNow, finalLength, finalLastWriteUtc));
                         _events.Report(new JournalAppendedEvent(fileInventoryResult.Hash, moveResult.PrimaryFinalPath));
                     }
                 }

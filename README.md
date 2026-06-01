@@ -71,7 +71,7 @@ settings, the first launch may need explicit approval in macOS security settings
 | `CULTURE_NAME`                      | no       | `en-US`                  | Culture used for folder names like `MMMM` (month).                                           |
 | `LOGGING_TARGET`                    | no       | `pictureSortLogging.txt` | Rolling Serilog file sink.                                                                   |
 | `SIDECAR_EXTENSIONS`                | no       | _empty (feature off)_    | Opt-in. Semicolon-separated list of sidecar extensions (e.g. `.xmp;.aae;.json`) that should follow their matching primary image when it is moved. Leading dot optional, case-insensitive. |
-| `JOURNAL_FILE`                      | no       | _empty (feature off)_    | Opt-in. Path to an append-only JSONL journal of moved files. May be a file path or an existing directory; in the latter case the file `picturesortandduplicatecleaner-journal.jsonl` is used. When set, hashes from previous runs are treated as "already in target" even without `INVENTOR_OF_THE_TARGET_DIRECTORY=true`. |
+| `JOURNAL_FILE`                      | no       | _empty (feature off)_    | Opt-in. Path to a JSONL journal of moved files that also acts as a target hash cache. May be a file path or an existing directory; in the latter case the file `picturesortandduplicatecleaner-journal.jsonl` is used. When set, hashes from previous runs are treated as "already in target" even without `INVENTOR_OF_THE_TARGET_DIRECTORY=true`, and target files whose path+size+mtime are unchanged skip re-hashing. See [Journal](#journal-opt-in). |
 | `FOLDER_TEMPLATE`                   | no       | `{yyyy}/{MMMM}/{dd}`     | Token-based template for the per-file target subfolder below `PICTURE_TARGET`. Use `/` or `\` as separators. Unknown tokens or path-traversal segments (`..`) reject startup. See _Folder Template_ below. |
 | `UNKNOWN_DATE_POLICY`               | no       | `move`                   | How to handle files without an EXIF date. `move` (default, legacy): drop them into the `Unknown/` folder using filesystem-timestamp fallbacks. `skip`: leave them in source and count under `FilesWithoutDateSkipped`. `fail`: leave them in source and count as errors. |
 | `DRY_RUN`                           | no       | `false`                  | If `true`, no files are written, moved, copied, or deleted. The sorter still inventories, hashes, and reports every action it _would_ take. Useful for previewing changes before committing. |
@@ -190,35 +190,55 @@ Behavior:
 
 ## Journal (opt-in)
 
-When `JOURNAL_FILE` is set, PictureSortAndDuplicateCleaner writes an append-only JSONL journal of
-every primary file that was moved into the target during a run. The journal
-serves two purposes:
+When `JOURNAL_FILE` is set, PictureSortAndDuplicateCleaner maintains a JSONL journal that
+both records moves and acts as a persistent hash cache for the target. The journal
+serves three purposes:
 
-1. **Crash safety / audit trail** — every successful move is persisted
+1. **Crash safety / audit trail** — every successful move is appended
    immediately, so you can reconstruct what happened after an interrupted run.
 2. **Speed up subsequent runs** — on the next run the journal is loaded and its
    hashes are merged into the "already in target" detection. This lets you
    leave `INVENTOR_OF_THE_TARGET_DIRECTORY=false` (which avoids rehashing the
    entire library) and still detect re-imports of files that were previously
    moved.
+3. **Skip re-hashing unchanged target files** — when
+   `INVENTOR_OF_THE_TARGET_DIRECTORY=true`, the target inventory consults the
+   journal before hashing. A file is reused from cache (no hashing) when its
+   **path, size and last-write-time** all still match a recorded entry.
+   At the end of such a run the journal is **compacted**: entries whose file is
+   gone are pruned, newly seen files are added, and duplicate path lines are
+   collapsed — so the journal converges to a 1:1 mirror of the current target.
 
-File format:
+File format (schema `v2`):
 
 ```
-{"schema":"picturesortandduplicatecleaner-journal/v1"}
-{"hash":"...","targetPath":"D:/Library/2024/May/19/IMG_0001.jpg","movedAtUtc":"2024-05-19T08:30:00Z"}
+{"schema":"picturesortandduplicatecleaner-journal/v2"}
+{"hash":"...","targetPath":"D:/Library/2024/May/19/IMG_0001.jpg","movedAtUtc":"2024-05-19T08:30:00Z","length":2486231,"fileLastWriteUtc":"2024-05-19T08:29:58Z"}
 ...
 ```
 
 Behavior:
 
-- The journal is opt-in. With an empty `JOURNAL_FILE`, nothing is loaded or
-  written.
+- The journal is opt-in. With an empty `JOURNAL_FILE`, nothing is loaded,
+  written or cached.
+- The cache hit rule is conservative: **path + size + last-write-time** must all
+  match. Any change that alters a file's size or last-write-time forces a
+  re-hash; reusing a cached hash is only possible when both are preserved.
+  (Content that is replaced in place while keeping the exact same size *and*
+  last-write-time would not be detected — this is the standard size+mtime
+  trade-off used by tools like `rsync`.)
+- Path matching follows the host filesystem: case-insensitive on Windows and
+  macOS, case-sensitive on Linux (so `a.jpg` and `A.jpg` are distinct entries
+  on Linux).
 - Stale entries (the target file no longer exists) are counted in the summary
   as `journal stale` and are **not** used for the "already in target" check —
   so deleting a file from the target makes it re-importable.
-- Concurrent moves are serialised when writing journal lines so the file stays
-  valid JSONL.
+- Compaction only runs after a full target inventory
+  (`INVENTOR_OF_THE_TARGET_DIRECTORY=true`, non dry-run). When the target is not
+  inventoried, the journal is only appended to and never pruned.
+- Concurrent moves and inventory writes are serialised when writing journal
+  lines so the file stays valid JSONL.
+
 
 ## Hashing Modes
 
