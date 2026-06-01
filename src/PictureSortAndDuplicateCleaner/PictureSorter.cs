@@ -124,7 +124,10 @@ public class PictureSorter
                 sidecarMatcher,
                 ref sidecarsMoved,
                 pictureSortParameter.DryRun,
-                cancellationToken);
+                cancellationToken,
+                duplicateFolderName: pictureSortParameter.DuplicateFolderName,
+                moveToSourceRoot: false,
+                sourceRoot: null);
         }
         else if (pictureSortParameter.OperationMode == OperationMode.Copy && sourceDuplicateCandidates.Count > 0)
         {
@@ -133,7 +136,7 @@ public class PictureSorter
 
         var targetDuplicateCandidates = targetFiles.MarkDuplicatesAndCollectMoveCandidates(
             progress,
-            pictureSortParameter.DuplicateFolderName,
+            pictureSortParameter.DuplicateInTargetFolderName,
             cancellationToken,
             pictureSortParameter.DuplicateVerification);
         if (pictureSortParameter.MoveDuplicateFilesInTargetDirectory)
@@ -144,7 +147,10 @@ public class PictureSorter
                 sidecarMatcher: null,
                 ref sidecarsMoved,
                 pictureSortParameter.DryRun,
-                cancellationToken);
+                cancellationToken,
+                duplicateFolderName: pictureSortParameter.DuplicateInTargetFolderName,
+                moveToSourceRoot: true,
+                sourceRoot: pictureSortParameter.SourceDirectories.FirstOrDefault());
         }
 
         var existingErrorCount = 0;
@@ -237,7 +243,10 @@ public class PictureSorter
         SidecarMatcher? sidecarMatcher,
         ref int sidecarsMoved,
         bool dryRun,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        string duplicateFolderName,
+        bool moveToSourceRoot,
+        string? sourceRoot)
     {
         var errorCount = 0;
         for (var i = 0; i < candidates.Count; i++)
@@ -246,9 +255,10 @@ public class PictureSorter
             var candidate = candidates[i];
             _events.Report(new DuplicateDetectedEvent(candidate.File.FullPath, candidate.File.Hash));
             var sidecars = sidecarMatcher?.Find(candidate.File) ?? Array.Empty<SidecarFile>();
+            var targetDirectory = ResolveDuplicateTargetDirectory(candidate, duplicateFolderName, moveToSourceRoot, sourceRoot);
             var result = MoveFileAndSidecars(
                 candidate.File.FullPath,
-                candidate.TargetDirectory,
+                targetDirectory,
                 candidate.File.OriginalFileName,
                 sidecars,
                 progress,
@@ -260,6 +270,17 @@ public class PictureSorter
         }
 
         return errorCount;
+    }
+
+    private static string ResolveDuplicateTargetDirectory(DuplicateMoveCandidate candidate, string duplicateFolderName, bool moveToSourceRoot, string? sourceRoot)
+    {
+        if (!moveToSourceRoot)
+        {
+            return candidate.TargetDirectory;
+        }
+
+        var root = string.IsNullOrWhiteSpace(sourceRoot) ? candidate.File.OriginalDirectory : sourceRoot;
+        return Path.Combine(root, duplicateFolderName, candidate.File.Hash);
     }
 
     private void MarkAlreadyExistingForCopyMode(

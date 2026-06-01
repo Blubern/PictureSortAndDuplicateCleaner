@@ -22,6 +22,7 @@ Log.Debug("{Variable}: {Value}", PictureSortEnvironmentOptions.PictureSourceVari
 Log.Debug("{Variable}: {Value}", PictureSortEnvironmentOptions.PictureTargetVariable, options.TargetDirectory);
 Log.Debug("{Variable}: {Value}", PictureSortEnvironmentOptions.MaxConcurrencyVariable, options.MaxConcurrency);
 Log.Debug("{Variable}: {Value}", PictureSortEnvironmentOptions.DuplicateFolderNameVariable, options.DuplicateFolderName);
+Log.Debug("{Variable}: {Value}", PictureSortEnvironmentOptions.DuplicateInTargetFolderNameVariable, options.DuplicateInTargetFolderName);
 Log.Debug("{Variable}: {Value}", PictureSortEnvironmentOptions.AlreadyExistingFolderNameVariable, options.AlreadyExistingFolderName);
 Log.Debug("{Variable}: {Value}", PictureSortEnvironmentOptions.CultureNameVariable, options.CultureName);
 Log.Debug("{Variable}: {Value}", PictureSortEnvironmentOptions.InventoryOfTheTargetDirectoryVariable, options.InventoryOfTheTargetDirectory);
@@ -58,7 +59,8 @@ try
         options.DryRun,
         options.OperationMode,
         options.DuplicateVerification,
-        options.HashMode);
+        options.HashMode,
+        options.DuplicateInTargetFolderName);
     PictureSortParameterValidator.Validate(parameter);
 }
 catch (ArgumentException ex)

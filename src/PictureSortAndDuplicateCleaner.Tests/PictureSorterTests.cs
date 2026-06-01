@@ -121,6 +121,38 @@ public sealed class PictureSorterTests
     }
 
     [Fact]
+    public async Task StartPictureSortAsync_WhenDuplicatesExistOnlyInTarget_MovesThemToSourceDuplicateInTargetFolder()
+    {
+        var fs = new InMemoryFileSystem();
+        var sourceDirectory = new InMemoryDirectory(fs);
+        var targetDirectory = new InMemoryDirectory(fs);
+        var firstTargetFile = targetDirectory.CreateFile("archive/first.jpg", "same content");
+        var secondTargetFile = targetDirectory.CreateFile("archive/second.jpg", "same content");
+        var sorter = new PictureSorter(new InventoryDirectory(fs), fs);
+        var parameter = new PictureSortParameter(
+            new[] { sourceDirectory.Path },
+            targetDirectory.Path,
+            1,
+            "!DuplicateInSource",
+            "!ExistsInTarget",
+            inventoryOfTheTargetDirectory: true,
+            duplicateInTargetFolderName: "!DuplicateInTarget");
+
+        var result = await sorter.StartPictureSortAsync(parameter, new TestProgress(), CancellationToken.None);
+
+        var targetDuplicateFiles = fs.EnumerateFiles(
+            System.IO.Path.Combine(sourceDirectory.Path, "!DuplicateInTarget"),
+            "*.jpg",
+            SearchOption.AllDirectories).ToArray();
+
+        var remainingTargetFiles = fs.EnumerateFiles(targetDirectory.Path, "*.jpg", SearchOption.AllDirectories).ToArray();
+
+        Assert.Single(targetDuplicateFiles);
+        Assert.Single(remainingTargetFiles);
+        Assert.Equal(1, result.DuplicateFilesMoved);
+    }
+
+    [Fact]
     public async Task StartPictureSortAsync_WithMultipleSourceDirectories_MovesAllFilesIntoTarget()
     {
         var fs = new InMemoryFileSystem();

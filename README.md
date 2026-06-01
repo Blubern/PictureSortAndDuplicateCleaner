@@ -64,7 +64,8 @@ settings, the first launch may need explicit approval in macOS security settings
 | `PICTURE_SOURCE`                    | yes      | —                        | One or more source directories. Separate multiple paths with `;`.                            |
 | `PICTURE_TARGET`                    | yes      | —                        | Target root directory. Files are moved into `yyyy/MMMM/dd` subfolders below this.            |
 | `MAX_CONCURRENCY`                   | no       | `Environment.ProcessorCount` | Maximum number of files processed in parallel. Must be a positive integer.                |
-| `DUPLICATE_FOLDER_NAME`             | no       | `!Duplicate`             | Folder inside each source directory that collects duplicates of files already moved.         |
+| `DUPLICATE_FOLDER_NAME`             | no       | `!DuplicateInSource`     | Folder inside each source directory that collects source-side duplicates of files already moved. |
+| `DUPLICATE_IN_TARGET_FOLDER_NAME`   | no       | `!DuplicateInTarget`     | Folder at the source-root level that collects duplicates found in the target tree, so they do not end up under the target path itself. |
 | `ALREADY_EXISTING_FOLDER_NAME`      | no       | `!ExistsInTarget`        | Folder inside each source directory that collects files whose hash already exists in target. |
 | `INVENTOR_OF_THE_TARGET_DIRECTORY`  | no       | `true`                   | If `true`, inventory the target as well so already-existing files can be detected.           |
 | `CULTURE_NAME`                      | no       | `en-US`                  | Culture used for folder names like `MMMM` (month).                                           |
@@ -144,9 +145,12 @@ source and write the target folders.
 
 ## Behavior Notes
 
-- Files with identical XxHash3 content fingerprints in the source are considered duplicates. The
+- Files with identical XxHash3 content fingerprints in the source are considered source-side duplicates. The
   first occurrence is moved to the target; the rest are moved to the
   `DUPLICATE_FOLDER_NAME` folder of the source directory they came from.
+- Duplicates that are already present in the target tree are treated as target-side duplicates and are moved into
+  `DUPLICATE_IN_TARGET_FOLDER_NAME` under the source root, which keeps the target tree clean and makes the
+  destination explicit.
 - XxHash3 is used as a fast duplicate-detection fingerprint, not as a cryptographic
   integrity or security hash for adversarial input.
 - When `INVENTOR_OF_THE_TARGET_DIRECTORY=true`, files whose hash already exists
@@ -157,7 +161,7 @@ source and write the target folders.
   single name, the file is reported as an error instead of looping forever.
 - In `OPERATION_MODE=copy`, source files and source sidecars are left in place.
   Files already present in the target are skipped, while source-side duplicate
-  reorganization into `!Duplicate` is not performed.
+  reorganization into `!DuplicateInSource` is not performed.
 - Cancellation via Ctrl+C aborts the run and returns exit code `2`.
 
 ## Sidecar Files (opt-in)
@@ -173,8 +177,9 @@ file name. Both common naming conventions are supported:
 
 Behavior:
 
-- Sidecars follow their primary into the date folder, the `!Duplicate` folder,
-  or the `!ExistsInTarget` folder — wherever the primary lands.
+- Sidecars follow their primary into the date folder, the source-side duplicate folder,
+  the `DUPLICATE_IN_TARGET_FOLDER_NAME` folder, or the `!ExistsInTarget` folder — wherever the
+  primary lands.
 - If the primary is renamed because of a name collision (e.g. `IMG_1234_0.jpg`),
   the sidecar inherits the same renamed base name (`IMG_1234_0.xmp`).
 - A sidecar file without a matching primary is reported as "orphan" in the
