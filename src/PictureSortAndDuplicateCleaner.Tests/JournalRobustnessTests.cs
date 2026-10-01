@@ -5,7 +5,7 @@ namespace PictureSortAndDuplicateCleaner.Tests;
 public sealed class JournalRobustnessTests
 {
     [Fact]
-    public void Load_OnMissingFile_IsNoOpAndReportsZero()
+    public void Load_OnMissingFile_DoesNotCreateFile_AndReportsZero()
     {
         using var dir = new TemporaryDirectory();
         var path = Path.Combine(dir.Path, "does-not-exist.jsonl");
@@ -16,7 +16,9 @@ public sealed class JournalRobustnessTests
         Assert.Equal(0, journal.EntriesLoaded);
         Assert.Equal(0, journal.EntriesStale);
         Assert.Empty(journal.KnownHashes);
-        Assert.False(File.Exists(path), "Load must not create the file.");
+        // Loading must stay write-free so a dry run never touches disk; the header is
+        // written lazily on the first Append/Compact instead.
+        Assert.False(File.Exists(path), "Load should not create the journal file (dry-run must remain write-free).");
     }
 
     [Fact]
@@ -99,6 +101,28 @@ public sealed class JournalRobustnessTests
         Assert.Contains("\"schema\"", lines[0]);
         Assert.Contains("\"hash1\"", lines[1]);
         Assert.Equal(1, journal.EntriesWritten);
+    }
+
+    [Fact]
+    public void Append_100KEntries_WritesAllLines()
+    {
+        using var dir = new TemporaryDirectory();
+        var path = Path.Combine(dir.Path, "large-journal.jsonl");
+        var journal = new FilePictureSortJournal(path);
+
+        const int count = 100_000;
+        for (var i = 0; i < count; i++)
+        {
+            journal.Append(new JournalEntry(
+                $"hash_{i:D6}",
+                Path.Combine(dir.Path, $"file_{i:D6}.jpg"),
+                DateTime.UtcNow));
+        }
+
+        var lines = File.ReadAllLines(path);
+        Assert.Equal(count + 1, lines.Length);
+        Assert.Equal(count, journal.EntriesWritten);
+        Assert.All(lines.Skip(1), line => Assert.True(line.Contains("\"hash_"), $"Unexpected line: {line}"));
     }
 
     [Fact]

@@ -58,7 +58,7 @@ public sealed class PictureSorterJournalTests
         Assert.Equal(0, result.JournalEntriesLoaded);
         Assert.Equal(2, result.JournalEntriesWritten);
         var lines = fs.ReadAllLines(journalPath);
-        Assert.Equal(FilePictureSortJournal.SchemaVersion, "picturesortandduplicatecleaner-journal/v1");
+        Assert.Equal(FilePictureSortJournal.SchemaVersion, "picturesortandduplicatecleaner-journal/v2");
         Assert.Contains(lines, l => l.Contains("\"schema\""));
         Assert.Equal(3, lines.Count); // header + 2 entries
     }

@@ -96,6 +96,7 @@ public class PictureSorter
                 progress,
                 false,
                 Array.Empty<string>(),
+                journal,
                 cancellationToken);
             _events.Report(new InventoryCompletedEvent(pictureSortParameter.TargetDirectory, targetInventory.Files.Count, targetInventory.Sidecars.Count));
         }
@@ -124,7 +125,10 @@ public class PictureSorter
                 sidecarMatcher,
                 ref sidecarsMoved,
                 pictureSortParameter.DryRun,
-                cancellationToken);
+                cancellationToken,
+                duplicateFolderName: pictureSortParameter.DuplicateFolderName,
+                moveToSourceRoot: false,
+                sourceRoot: null);
         }
         else if (pictureSortParameter.OperationMode == OperationMode.Copy && sourceDuplicateCandidates.Count > 0)
         {
@@ -133,7 +137,7 @@ public class PictureSorter
 
         var targetDuplicateCandidates = targetFiles.MarkDuplicatesAndCollectMoveCandidates(
             progress,
-            pictureSortParameter.DuplicateFolderName,
+            pictureSortParameter.DuplicateInTargetFolderName,
             cancellationToken,
             pictureSortParameter.DuplicateVerification);
         if (pictureSortParameter.MoveDuplicateFilesInTargetDirectory)
@@ -144,7 +148,10 @@ public class PictureSorter
                 sidecarMatcher: null,
                 ref sidecarsMoved,
                 pictureSortParameter.DryRun,
-                cancellationToken);
+                cancellationToken,
+                duplicateFolderName: pictureSortParameter.DuplicateInTargetFolderName,
+                moveToSourceRoot: true,
+                sourceRoot: pictureSortParameter.SourceDirectories.FirstOrDefault());
         }
 
         var existingErrorCount = 0;
@@ -200,6 +207,17 @@ public class PictureSorter
             progress.Report($"SKIPPED empty-source-directory cleanup (DryRun={pictureSortParameter.DryRun}, OperationMode={pictureSortParameter.OperationMode}).");
         }
 
+        // The journal doubles as a hash cache for the target inventory. Only compact when a full
+        // target inventory ran this turn; otherwise unseen-but-valid cache entries would be pruned.
+        if (pictureSortParameter.InventoryOfTheTargetDirectory
+            && !pictureSortParameter.DryRun
+            && !ReferenceEquals(journal, NullPictureSortJournal.Instance))
+        {
+            var compaction = journal.Compact();
+            progress.Report($"Journal compacted: kept {compaction.Kept} entries, pruned {compaction.Removed}.");
+            _events.Report(new JournalCompactedEvent(compaction.Kept, compaction.Removed));
+        }
+
         var sourceFilesIgnored = sourceFiles.Count(a => a.IsIgnored);
         var targetFilesIgnored = targetFiles.Count(a => a.IsIgnored);
         var duplicateFilesMoved = sourceFiles
@@ -237,7 +255,10 @@ public class PictureSorter
         SidecarMatcher? sidecarMatcher,
         ref int sidecarsMoved,
         bool dryRun,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        string duplicateFolderName,
+        bool moveToSourceRoot,
+        string? sourceRoot)
     {
         var errorCount = 0;
         for (var i = 0; i < candidates.Count; i++)
@@ -246,9 +267,10 @@ public class PictureSorter
             var candidate = candidates[i];
             _events.Report(new DuplicateDetectedEvent(candidate.File.FullPath, candidate.File.Hash));
             var sidecars = sidecarMatcher?.Find(candidate.File) ?? Array.Empty<SidecarFile>();
+            var targetDirectory = ResolveDuplicateTargetDirectory(candidate, duplicateFolderName, moveToSourceRoot, sourceRoot);
             var result = MoveFileAndSidecars(
                 candidate.File.FullPath,
-                candidate.TargetDirectory,
+                targetDirectory,
                 candidate.File.OriginalFileName,
                 sidecars,
                 progress,
@@ -260,6 +282,17 @@ public class PictureSorter
         }
 
         return errorCount;
+    }
+
+    private static string ResolveDuplicateTargetDirectory(DuplicateMoveCandidate candidate, string duplicateFolderName, bool moveToSourceRoot, string? sourceRoot)
+    {
+        if (!moveToSourceRoot)
+        {
+            return candidate.TargetDirectory;
+        }
+
+        var root = string.IsNullOrWhiteSpace(sourceRoot) ? candidate.File.OriginalDirectory : sourceRoot;
+        return Path.Combine(root, duplicateFolderName, candidate.File.Hash);
     }
 
     private void MarkAlreadyExistingForCopyMode(
@@ -439,7 +472,18 @@ public class PictureSorter
                     Interlocked.Add(ref errorCount, moveResult.SidecarErrors);
                     if (!dryRun)
                     {
-                        journal.Append(new JournalEntry(fileInventoryResult.Hash, moveResult.PrimaryFinalPath, _clock.UtcNow));
+                        long finalLength = 0;
+                        var finalLastWriteUtc = default(DateTime);
+                        try
+                        {
+                            finalLength = _fileSystem.GetFileLength(moveResult.PrimaryFinalPath);
+                            finalLastWriteUtc = _fileSystem.GetLastWriteTime(moveResult.PrimaryFinalPath);
+                        }
+                        catch (Exception statEx)
+                        {
+                            progress.Report($"Could not stat moved file {moveResult.PrimaryFinalPath} for journal: {statEx.Message}.");
+                        }
+                        journal.Append(new JournalEntry(fileInventoryResult.Hash, moveResult.PrimaryFinalPath, _clock.UtcNow, finalLength, finalLastWriteUtc));
                         _events.Report(new JournalAppendedEvent(fileInventoryResult.Hash, moveResult.PrimaryFinalPath));
                     }
                 }

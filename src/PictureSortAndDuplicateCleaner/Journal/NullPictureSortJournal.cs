@@ -20,4 +20,16 @@ public sealed class NullPictureSortJournal : IPictureSortJournal
     public void Append(JournalEntry entry)
     {
     }
+
+    public bool TryGetCachedHash(string path, long length, DateTime lastWriteUtc, out string hash)
+    {
+        hash = string.Empty;
+        return false;
+    }
+
+    public void RecordInventory(string path, string hash, long length, DateTime lastWriteUtc)
+    {
+    }
+
+    public JournalCompactionResult Compact() => new(Kept: 0, Removed: 0);
 }

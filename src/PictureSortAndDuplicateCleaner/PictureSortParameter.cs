@@ -17,13 +17,15 @@ public class PictureSortParameter
         bool dryRun = false,
         OperationMode operationMode = OperationMode.Move,
         DuplicateVerification duplicateVerification = DuplicateVerification.HashOnly,
-        HashMode hashMode = HashMode.File)
+        HashMode hashMode = HashMode.File,
+        string duplicateInTargetFolderName = "!DuplicateInTarget")
     {
         SourceDirectories = sourceDirectories;
         TargetDirectory = targetDirectory;
         MaxConcurrency = maxConcurrency;
         DuplicateFolderName = duplicateFolderName;
         AlreadyExistingFolderName = alreadyExistingFolderName;
+        DuplicateInTargetFolderName = string.IsNullOrWhiteSpace(duplicateInTargetFolderName) ? "!DuplicateInTarget" : duplicateInTargetFolderName;
         InventoryOfTheTargetDirectory = inventoryOfTheTargetDirectory;
         MoveDuplicateFilesInSourceDirectory = true;
         MoveDuplicateFilesInTargetDirectory = true;
@@ -48,8 +50,10 @@ public class PictureSortParameter
     public bool MoveDuplicateFilesInTargetDirectory { get; }
     
     public string DuplicateFolderName { get; }
-    
+
     public string AlreadyExistingFolderName { get; }
+
+    public string DuplicateInTargetFolderName { get; }
     
     public bool InventoryOfTheTargetDirectory { get; }
 
@@ -71,7 +75,7 @@ public class PictureSortParameter
 
     public override string ToString()
     {
-        return $"{nameof(SourceDirectories)}: {string.Join(",", SourceDirectories)}, {nameof(TargetDirectory)}: {TargetDirectory}, {nameof(MaxConcurrency)}: {MaxConcurrency}, {nameof(MoveDuplicateFilesInSourceDirectory)}: {MoveDuplicateFilesInSourceDirectory}, {nameof(MoveDuplicateFilesInTargetDirectory)}: {MoveDuplicateFilesInTargetDirectory}, {nameof(DuplicateFolderName)}: {DuplicateFolderName}, {nameof(AlreadyExistingFolderName)}: {AlreadyExistingFolderName}, {nameof(InventoryOfTheTargetDirectory)}: {InventoryOfTheTargetDirectory}, {nameof(SidecarExtensions)}: [{string.Join(",", SidecarExtensions)}], {nameof(JournalFilePath)}: {JournalFilePath ?? "<disabled>"}, {nameof(FolderTemplate)}: {FolderTemplate.RawTemplate}, {nameof(UnknownDatePolicy)}: {UnknownDatePolicy}, {nameof(DryRun)}: {DryRun}, {nameof(OperationMode)}: {OperationMode}, {nameof(DuplicateVerification)}: {DuplicateVerification}, {nameof(HashMode)}: {HashMode}";
+        return $"{nameof(SourceDirectories)}: {string.Join(",", SourceDirectories)}, {nameof(TargetDirectory)}: {TargetDirectory}, {nameof(MaxConcurrency)}: {MaxConcurrency}, {nameof(MoveDuplicateFilesInSourceDirectory)}: {MoveDuplicateFilesInSourceDirectory}, {nameof(MoveDuplicateFilesInTargetDirectory)}: {MoveDuplicateFilesInTargetDirectory}, {nameof(DuplicateFolderName)}: {DuplicateFolderName}, {nameof(AlreadyExistingFolderName)}: {AlreadyExistingFolderName}, {nameof(DuplicateInTargetFolderName)}: {DuplicateInTargetFolderName}, {nameof(InventoryOfTheTargetDirectory)}: {InventoryOfTheTargetDirectory}, {nameof(SidecarExtensions)}: [{string.Join(",", SidecarExtensions)}], {nameof(JournalFilePath)}: {JournalFilePath ?? "<disabled>"}, {nameof(FolderTemplate)}: {FolderTemplate.RawTemplate}, {nameof(UnknownDatePolicy)}: {UnknownDatePolicy}, {nameof(DryRun)}: {DryRun}, {nameof(OperationMode)}: {OperationMode}, {nameof(DuplicateVerification)}: {DuplicateVerification}, {nameof(HashMode)}: {HashMode}";
     }
 
     private static IReadOnlyList<string> NormalizeSidecarExtensions(IReadOnlyList<string>? raw)

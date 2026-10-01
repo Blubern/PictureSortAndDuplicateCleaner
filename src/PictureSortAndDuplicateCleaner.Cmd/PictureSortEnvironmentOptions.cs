@@ -8,6 +8,7 @@ public sealed class PictureSortEnvironmentOptions
     public const string PictureTargetVariable = "PICTURE_TARGET";
     public const string MaxConcurrencyVariable = "MAX_CONCURRENCY";
     public const string DuplicateFolderNameVariable = "DUPLICATE_FOLDER_NAME";
+    public const string DuplicateInTargetFolderNameVariable = "DUPLICATE_IN_TARGET_FOLDER_NAME";
     public const string AlreadyExistingFolderNameVariable = "ALREADY_EXISTING_FOLDER_NAME";
     public const string CultureNameVariable = "CULTURE_NAME";
     public const string InventoryOfTheTargetDirectoryVariable = "INVENTOR_OF_THE_TARGET_DIRECTORY";
@@ -21,7 +22,8 @@ public sealed class PictureSortEnvironmentOptions
     public const string DuplicateVerificationVariable = "DUPLICATE_VERIFICATION";
     public const string HashModeVariable = "HASH_MODE";
 
-    public const string DefaultDuplicateFolderName = "!Duplicate";
+    public const string DefaultDuplicateFolderName = "!DuplicateInSource";
+    public const string DefaultDuplicateInTargetFolderName = "!DuplicateInTarget";
     public const string DefaultAlreadyExistingFolderName = "!ExistsInTarget";
     public const string DefaultCultureName = "en-US";
     public const string DefaultLoggingTarget = "pictureSortLogging.txt";
@@ -41,6 +43,7 @@ public sealed class PictureSortEnvironmentOptions
         MaxConcurrency = maxConcurrency;
         DuplicateFolderName = duplicateFolderName;
         AlreadyExistingFolderName = alreadyExistingFolderName;
+        DuplicateInTargetFolderName = DefaultDuplicateInTargetFolderName;
         CultureName = cultureName;
         InventoryOfTheTargetDirectory = inventoryOfTheTargetDirectory;
         LoggingTarget = loggingTarget;
@@ -59,6 +62,7 @@ public sealed class PictureSortEnvironmentOptions
     public int MaxConcurrency { get; }
     public string DuplicateFolderName { get; }
     public string AlreadyExistingFolderName { get; }
+    public string DuplicateInTargetFolderName { get; private init; }
     public string CultureName { get; }
     public bool InventoryOfTheTargetDirectory { get; }
     public string LoggingTarget { get; }
@@ -244,6 +248,8 @@ public sealed class PictureSortEnvironmentOptions
             }
         }
 
+        var duplicateInTargetFolderName = ValueOrDefault(getEnvironmentVariable(DuplicateInTargetFolderNameVariable), DefaultDuplicateInTargetFolderName);
+
         options = new PictureSortEnvironmentOptions(
             sources,
             target,
@@ -256,6 +262,7 @@ public sealed class PictureSortEnvironmentOptions
         {
             SidecarExtensions = ParseSidecarExtensions(getEnvironmentVariable(SidecarExtensionsVariable)),
             JournalFilePath = ParseJournalFilePath(getEnvironmentVariable(JournalFileVariable)),
+            DuplicateInTargetFolderName = duplicateInTargetFolderName,
             FolderTemplate = folderTemplate,
             UnknownDatePolicy = unknownDatePolicy,
             DryRun = dryRun,
