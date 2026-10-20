@@ -84,7 +84,7 @@ public sealed class PictureSorterInMemoryTests
         var sink = new Progress<PictureSortEvent>(e => { lock (captured) { captured.Add(e); } });
 
         await sorter.StartPictureSortAsync(parameter, new TestProgress(), sink, CancellationToken.None);
-        await Task.Delay(50);
+        await Task.Delay(50, TestContext.Current.CancellationToken);
 
         var moved = fs.EnumerateFiles(targetDir, "*", SearchOption.AllDirectories).ToList();
         Assert.Equal(2, moved.Count);

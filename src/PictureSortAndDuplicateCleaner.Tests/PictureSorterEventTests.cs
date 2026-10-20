@@ -27,7 +27,7 @@ public sealed class PictureSorterEventTests
         await sorter.StartPictureSortAsync(parameter, new TestProgress(), sink, CancellationToken.None);
 
         // Progress<T> dispatches on the captured synchronization context; give callbacks a beat to land.
-        await Task.Delay(50);
+        await Task.Delay(50, TestContext.Current.CancellationToken);
 
         lock (captured)
         {

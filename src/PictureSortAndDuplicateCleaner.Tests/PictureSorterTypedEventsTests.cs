@@ -26,7 +26,7 @@ public sealed class PictureSorterTypedEventsTests
         var sink = new Progress<PictureSortEvent>(e => { lock (captured) { captured.Add(e); } });
 
         await sorter.StartPictureSortAsync(parameter, new TestProgress(), sink, CancellationToken.None);
-        await Task.Delay(50);
+        await Task.Delay(50, TestContext.Current.CancellationToken);
 
         lock (captured)
         {
@@ -58,7 +58,7 @@ public sealed class PictureSorterTypedEventsTests
         var sink = new Progress<PictureSortEvent>(e => { lock (captured) { captured.Add(e); } });
 
         await sorter.StartPictureSortAsync(parameter, new TestProgress(), sink, CancellationToken.None);
-        await Task.Delay(50);
+        await Task.Delay(50, TestContext.Current.CancellationToken);
 
         lock (captured)
         {
@@ -86,7 +86,7 @@ public sealed class PictureSorterTypedEventsTests
         var sink = new Progress<PictureSortEvent>(e => { lock (captured) { captured.Add(e); } });
 
         await sorter.StartPictureSortAsync(parameter, new TestProgress(), sink, CancellationToken.None);
-        await Task.Delay(50);
+        await Task.Delay(50, TestContext.Current.CancellationToken);
 
         lock (captured)
         {
@@ -117,7 +117,7 @@ public sealed class PictureSorterTypedEventsTests
         var sink = new Progress<PictureSortEvent>(e => { lock (captured) { captured.Add(e); } });
 
         await sorter.StartPictureSortAsync(parameter, new TestProgress(), sink, CancellationToken.None);
-        await Task.Delay(50);
+        await Task.Delay(50, TestContext.Current.CancellationToken);
 
         lock (captured)
         {
